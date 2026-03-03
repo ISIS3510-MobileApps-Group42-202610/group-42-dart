@@ -34,6 +34,13 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  english_words: ^4.0.0
+
+  # Dependencies for backend connection :3
+  dio: ^5.4.0 # HTTP client (better than http package)
+  flutter_secure_storage: ^9.0.0 # Store tokens securely
+  web_socket_channel: ^2.4.0 # Real-time WebSocket support
+  provider: ^6.1.1 # State management (beginner-friendly)
 
 dev_dependencies:
   flutter_test:
