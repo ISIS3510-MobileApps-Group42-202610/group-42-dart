@@ -56,7 +56,7 @@ class UniMarketApp extends StatelessWidget {
 
           // Autenticado, lleva al home
           if (state is AuthAuthenticated) {
-            return const Placeholder(); // TODO: falta el homescreen
+            return const PlaceholderHome(); // TODO: falta el homescreen
           }
 
           // No autenticado, lleva al login
@@ -69,8 +69,47 @@ class UniMarketApp extends StatelessWidget {
         '/register': (_) => const RegisterScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
         '/delete-account': (_) => const DeleteAccountScreen(),
-        '/home': (_) => const Placeholder(), // TODO: falta el homescreen
+        '/home': (_) => const PlaceholderHome(), // TODO: falta el homescreen
       },
     );
   }
 }
+
+class PlaceholderHome extends StatelessWidget {
+  // TODO: falta el homescreen
+  const PlaceholderHome();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.select((AuthBloc bloc) {
+      final state = bloc.state;
+      return state is AuthAuthenticated ? state.user : null;
+    });
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Welcome, ${user?.name}'),
+      ),
+      body: Center(
+        child: Column(
+          children: [
+            // logout
+            ElevatedButton(
+              onPressed: () => context
+                  .read<AuthBloc>()
+                  .add(const AuthLogoutRequest()),
+              child: Text('Logout'),
+            ),
+            // Delete account
+            ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/delete-account'),
+              child: Text('Delete Account'),
+            ),
+          ],
+        )
+      ),
+
+    );
+  }
+}
+
