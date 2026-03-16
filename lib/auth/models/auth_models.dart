@@ -121,13 +121,13 @@ class MessageResponse {
 
 // respuesta de usuario del backend
 class AuthResponse {
-  final String accesToken; // JWT
+  final String accessToken; // JWT
   final AuthUser user;
 
-  const AuthResponse({required this.accesToken, required this.user});
+  const AuthResponse({required this.accessToken, required this.user});
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
-    accesToken: json['accessToken'] as String,
+    accessToken: json['accessToken'] as String,
     user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
   );
 }
