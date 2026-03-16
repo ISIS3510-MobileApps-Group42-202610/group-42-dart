@@ -1,3 +1,4 @@
+// Vista de Login, realizada con las vistas del prototipo nativo del MS7
 // pagina de login
 
 import 'package:flutter/material.dart';
