@@ -18,17 +18,20 @@ class LoginScreen extends StatefulWidget {
 class LoginScreenState extends State<LoginScreen> {
   final formKey = GlobalKey<FormState>(); // validar formulario
   final emailController = TextEditingController(); // controlador de email
-  final passwordController = TextEditingController(); // controlador de contraseña
+  final passwordController =
+      TextEditingController(); // controlador de contraseña
   bool obscure = true; // ocultar contraseña por defecto
 
   @override
-  void dispose() { // limpiar los controladores
+  void dispose() {
+    // limpiar los controladores
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
-  void submit() { // validar formulario y enviar peticion
+  void submit() {
+    // validar formulario y enviar peticion
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthLoginRequest(
@@ -50,9 +53,9 @@ class LoginScreenState extends State<LoginScreen> {
               Navigator.pushReplacementNamed(context, '/home');
             }
             if (state is AuthError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
           builder: (context, state) {
@@ -113,8 +116,7 @@ class LoginScreenState extends State<LoginScreen> {
                             color: Colors.grey,
                             size: 20,
                           ),
-                          onPressed: () =>
-                              setState(() => obscure = !obscure),
+                          onPressed: () => setState(() => obscure = !obscure),
                         ),
                       ),
                       validator: (v) {
@@ -134,7 +136,9 @@ class LoginScreenState extends State<LoginScreen> {
                         child: const Text(
                           'Forgot password?',
                           style: TextStyle(
-                              color: AppColors.primaryBlue, fontSize: 13),
+                            color: AppColors.primaryBlue,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -147,30 +151,38 @@ class LoginScreenState extends State<LoginScreen> {
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                          : const Text('Log In',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600)),
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Log In',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
 
                     const SizedBox(height: 16),
 
                     // ── Divider ───────────────────────────────────
-                    Row(children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('or',
-                            style: TextStyle(color: Colors.grey.shade500)),
-                      ),
-                      const Expanded(child: Divider()),
-                    ]),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'or',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
 
                     const SizedBox(height: 16),
 
@@ -178,15 +190,20 @@ class LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Don't have an account?",
-                            style: TextStyle(color: Colors.grey.shade600)),
+                        Text(
+                          "Don't have an account?",
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                         TextButton(
                           onPressed: () =>
                               Navigator.pushNamed(context, '/register'),
-                          child: const Text('Sign Up',
-                              style: TextStyle(
-                                  color: AppColors.secondaryGreen,
-                                  fontWeight: FontWeight.w600)),
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: AppColors.secondaryGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
