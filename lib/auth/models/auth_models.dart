@@ -25,12 +25,12 @@ class RegisterRequest {
   // se mappea el objeto a un json
   Map<String, dynamic> toJson() => {
     'name': name,
-    'lastName': lastName,
+    'last_name': lastName,
     'email': email,
     'password': password,
     if (semester != null) 'semester': semester,
-    if (profilePic != null) 'profilePic': profilePic,
-    'isSeller': isSeller,
+    if (profilePic != null) 'profile_pic': profilePic,
+    'is_seller': isSeller,
   };
 }
 
@@ -60,7 +60,7 @@ class ResetPasswordRequest {
 
   const ResetPasswordRequest({required this.token, required this.newPassword});
 
-  Map<String, dynamic> toJson() => {'token': token, 'newPassword': newPassword};
+  Map<String, dynamic> toJson() => {'token': token, 'new_password': newPassword};
 }
 
 // Delete Account DTO
@@ -95,7 +95,7 @@ class AuthUser {
     id: json['id'] as int,
     name: json['name'] as String,
     email: json['email'] as String,
-    isSeller: json['isSeller'] as bool ?? false,
+    isSeller: json['is_seller'] as bool ?? false,
   );
 
   // se mappea el objeto a un json
@@ -103,7 +103,7 @@ class AuthUser {
     'id': id,
     'name': name,
     'email': email,
-    'isSeller': isSeller,
+    'is_seller': isSeller,
   };
 }
 
@@ -127,7 +127,7 @@ class AuthResponse {
   const AuthResponse({required this.accessToken, required this.user});
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
-    accessToken: json['accessToken'] as String,
+    accessToken: json['access_token'] as String,
     user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
   );
 }

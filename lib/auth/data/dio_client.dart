@@ -8,7 +8,7 @@ import '../data/token_storage.dart';
 
 Dio createDio({
   required TokenStorage tokenStorage,
-  String baseUrl = 'http://localhost:3000',
+  String baseUrl = 'https://group-42-backend.vercel.app/api/v1',
 }) {
   final dio = Dio(
     BaseOptions(

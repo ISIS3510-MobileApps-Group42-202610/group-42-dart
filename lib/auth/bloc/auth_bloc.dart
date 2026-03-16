@@ -1,5 +1,6 @@
 // el mismisimo business logic component de autenticacion
 
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'auth_event.dart';
@@ -42,7 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthUnauthenticated());
       }
     } catch (e) {
-      emit(const AuthUnauthenticated());
+      emit(AuthError(message: extractMessage(e)));
     }
   }
 
@@ -60,7 +61,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: e.toString()));
+      emit(AuthError(message: extractMessage(e)));
     }
   }
 
@@ -89,7 +90,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: e.toString()));
+      emit(AuthError(message: extractMessage(e)));
     }
   }
 
@@ -115,7 +116,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         action: AuthAction.forgotPassword,
       ));
     } catch (e) {
-      emit(AuthError(message: e.toString()));
+      emit(AuthError(message: extractMessage(e)));
     }
   }
 
@@ -135,7 +136,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         action: AuthAction.resetPassword,
       ));
     } catch (e) {
-      emit(AuthError(message: e.toString()));
+      emit(AuthError(message: extractMessage(e)));
     }
   }
 
@@ -153,8 +154,45 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         action: AuthAction.deleteAccount,
       ));
     } catch (e) {
-      emit(AuthError(message: e.toString()));
+      emit(AuthError(message: extractMessage(e)));
     }
+  }
+
+
+  // Extract error for debugging
+  String extractMessage(Object error) {
+    if (error is DioException) {
+      final response = error.response;
+      if (response != null) {
+        final data = response.data;
+
+        // NestJS typically returns a Map with a "message" key.
+        if (data is Map<String, dynamic>) {
+          final msg = data['message'];
+          if (msg is List) return msg.join('\n');
+          if (msg is String) return msg;
+        }
+
+        // If data came back as a raw String (e.g. plain text error).
+        if (data is String && data.isNotEmpty) return data;
+
+        // Fallback to status-code hints.
+        switch (response.statusCode) {
+          case 400:
+            return 'Invalid request. Please check your input.';
+          case 409:
+            return 'Email already in use.';
+          case 401:
+            return 'Invalid credentials.';
+          default:
+            return 'Server error (${response.statusCode}). Please try again.';
+        }
+      }
+
+      // No response at all — network issue.
+      return 'Connection error. Check your internet and try again.';
+    }
+    return 'An unexpected error occurred.';
   }
 
 }
