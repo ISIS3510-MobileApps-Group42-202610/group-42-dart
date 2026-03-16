@@ -60,8 +60,8 @@ class AuthRegisterRequest extends AuthEvent {
 
 
 // sign oput event
-class AuthSignoutRequest extends AuthEvent {
-  const AuthSignoutRequest();
+class AuthLogoutRequest extends AuthEvent {
+  const AuthLogoutRequest();
 }
 
 // forgot pass
