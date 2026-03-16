@@ -50,3 +50,55 @@ class LoginRequest {
     'password': password,
   };
 }
+
+
+// ==============================
+// Forgot Password DTO
+class ForgotPasswordRequest {
+  final String email;
+
+  const ForgotPasswordRequest({
+    required this.email,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'email': email,
+  };
+}
+
+
+// ==============================
+// Reset Password DTO
+class ResetPasswordRequest {
+  final String token;
+  final String newPassword;
+
+  const ResetPasswordRequest({
+    required this.token,
+    required this.newPassword,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'token': token,
+    'newPassword': newPassword,
+  };
+}
+
+// ==============================
+// Delete Account DTO
+class DeleteAccountRequest {
+  final String password;
+
+  const DeleteAccountRequest({
+    required this.password,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'password': password,
+  };
+}
+
+
+// Definition of user responses xd
+
+
