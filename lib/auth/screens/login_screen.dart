@@ -70,14 +70,14 @@ class LoginScreenState extends State<LoginScreen> {
                   children: [
                     const SizedBox(height: 60),
 
-                    // ── Logo ──────────────────────────────────────
+                    //Logo
                     const UniMarketHeader(
                       subtitle: 'Buy & sell within your university',
                     ),
 
                     const SizedBox(height: 48),
 
-                    // ── Email ─────────────────────────────────────
+                    // Email
                     fieldLabel('University Email'),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -97,7 +97,7 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ── Password ──────────────────────────────────
+                    // Contraseña
                     fieldLabel('Password'),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -127,7 +127,7 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 10),
 
-                    // ── Forgot password ───────────────────────────
+                    // Olvide la contraseña
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -145,7 +145,7 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ── Login button ──────────────────────────────
+                    // Iniciar sesión
                     ElevatedButton(
                       onPressed: isLoading ? null : submit,
                       style: primaryButtonStyle(),
@@ -169,7 +169,7 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 16),
 
-                    // ── Divider ───────────────────────────────────
+                    // Divisor
                     Row(
                       children: [
                         const Expanded(child: Divider()),
@@ -186,7 +186,7 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 16),
 
-                    // ── Sign up row ───────────────────────────────
+                    // Registrarme
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

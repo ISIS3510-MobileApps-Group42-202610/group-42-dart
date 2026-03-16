@@ -121,7 +121,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                   children: [
                     const SizedBox(height: 60),
 
-                    // ── Header (red-tinted) ───────────────────────
+                    // Header
                     Center(
                       child: Container(
                         width: 88,
@@ -175,7 +175,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
                     const SizedBox(height: 36),
 
-                    // ── Danger zone card ──────────────────────────
+                    // Zona de peligro, como en github xd
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(

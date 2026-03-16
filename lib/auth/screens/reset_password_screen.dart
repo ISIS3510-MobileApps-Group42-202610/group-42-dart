@@ -88,8 +88,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: tokenSent
-                  ? _buildResetForm(isLoading)
-                  : _buildEmailForm(isLoading),
+                  ? buildResetForm(isLoading)
+                  : buildEmailForm(isLoading),
             );
           },
         ),
@@ -97,9 +97,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-  // ── Step 1: enter email ─────────────────────────────────────────────────────
+  // Poner correo
 
-  Widget _buildEmailForm(bool isLoading) {
+  Widget buildEmailForm(bool isLoading) {
     return Form(
       key: emailFormKey,
       child: Column(
@@ -193,9 +193,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-  // ── Step 2: enter token + new password ──────────────────────────────────────
+  // PASO 2: usar el token para resetear
 
-  Widget _buildResetForm(bool isLoading) {
+  Widget buildResetForm(bool isLoading) {
     return Form(
       key: resetFormKey,
       child: Column(
@@ -223,11 +223,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
           const SizedBox(height: 32),
 
-          // ── Token ──────────────────────────────────────
+          // Codigo de reseteo
           fieldLabel('Reset Code'),
           const SizedBox(height: 8),
           TextFormField(
-            controller: _tokenControler,
+            controller: tokenControler,
             textInputAction: TextInputAction.next,
             decoration: uniInputDecoration(
               hint: 'Paste your code',
@@ -240,7 +240,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
           const SizedBox(height: 16),
 
-          // ── New password ───────────────────────────────
+          // Nueva contraseña
           fieldLabel('New Password'),
           const SizedBox(height: 8),
           TextFormField(
@@ -271,7 +271,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
           const SizedBox(height: 16),
 
-          // ── Confirm password ───────────────────────────
+          // Confirmar contraseña
           fieldLabel('Confirm New Password'),
           const SizedBox(height: 8),
           TextFormField(
