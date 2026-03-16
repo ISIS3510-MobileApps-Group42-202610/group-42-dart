@@ -12,7 +12,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc({required AuthRepository repositoryTemp})
     : repository = repositoryTemp,
-      super(const AuthInitial()) {}
+      super(const AuthInitial()) {
+    on<AuthCheckSession>(onCheckSession);
+    on<AuthLoginRequest>(onLogin);
+    on<AuthRegisterRequest>(onRegister);
+    on<AuthLogoutRequest>(onLogout);
+    on<AuthForgotPasswordRequest>(onForgotPassword);
+    on<AuthResetPasswordRequest>(onResetPassword);
+    on<AuthDeleteAccountRequest>(onDeleteAccount);
+  }
 
   // ============================================================================
   // eventos
@@ -86,7 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   // logout
-  Future<void> _onLogout(
+  Future<void> onLogout(
       AuthLogoutRequest event,
       Emitter<AuthState> emit,
       ) async {
