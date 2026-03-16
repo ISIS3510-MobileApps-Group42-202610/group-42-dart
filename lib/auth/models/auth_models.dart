@@ -1,7 +1,6 @@
 // ============================================================================
 // Definition of backend DTOs for the auth requests
 
-
 // Register DTO
 class RegisterRequest {
   final String name;
@@ -35,7 +34,6 @@ class RegisterRequest {
   };
 }
 
-
 // Login DTO
 class LoginRequest {
   final String email;
@@ -46,7 +44,6 @@ class LoginRequest {
   Map<String, dynamic> toJson() => {'email': email, 'password': password};
 }
 
-
 // Forgot Password DTO
 class ForgotPasswordRequest {
   final String email;
@@ -55,7 +52,6 @@ class ForgotPasswordRequest {
 
   Map<String, dynamic> toJson() => {'email': email};
 }
-
 
 // Reset Password DTO
 class ResetPasswordRequest {
@@ -66,7 +62,6 @@ class ResetPasswordRequest {
 
   Map<String, dynamic> toJson() => {'token': token, 'newPassword': newPassword};
 }
-
 
 // Delete Account DTO
 class DeleteAccountRequest {
@@ -79,7 +74,6 @@ class DeleteAccountRequest {
 
 // ============================================================================
 // Definition of user responses (from the backend) xd
-
 
 // Clase de usuario
 class AuthUser {
@@ -125,16 +119,12 @@ class MessageResponse {
   Map<String, dynamic> toJson() => {'message': message};
 }
 
-
 // respuesta de usuario del backend
 class AuthResponse {
   final String accesToken; // JWT
   final AuthUser user;
 
-  const AuthResponse({
-      required this.accesToken,
-      required this.user,
-  });
+  const AuthResponse({required this.accesToken, required this.user});
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
     accesToken: json['accessToken'] as String,
