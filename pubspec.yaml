@@ -36,11 +36,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   english_words: ^4.0.0
 
-  # Dependencies for backend connection :3
-  dio: ^5.4.0 # HTTP client (better than http package)
-  flutter_secure_storage: ^9.0.0 # Store tokens securely
-  web_socket_channel: ^2.4.0 # Real-time WebSocket support
-  provider: ^6.1.1 # State management (beginner-friendly)
+  # Dependencies
+  dio: ^5.4.0
+  flutter_bloc: ^8.1.0
+  equatable: ^2.0.5
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:
