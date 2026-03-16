@@ -14,46 +14,86 @@ class ResetPasswordScreen extends StatefulWidget {
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  // Primer paso es lo del correo
-  final emailFormKey = GlobalKey<FormState>();
+class _ResetPasswordScreenState extends State<ResetPasswordScreen>
+    with SingleTickerProviderStateMixin {
+  final formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
-
-  // Segundo paso es lo del token y la contraseña
-  final resetFormKey = GlobalKey<FormState>();
-  final tokenControler = TextEditingController();
+  final tokenController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
   bool obscurePassword = true;
-  bool obscureComfirm = true;
-
+  bool obscureConfirm = true;
   bool tokenSent = false;
+  late final AnimationController animationController;
+  late final Animation<double> fadeSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    fadeSlide = CurvedAnimation(
+      parent: animationController,
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   void dispose() {
+    animationController.dispose();
     emailController.dispose();
-    tokenControler.dispose();
+    tokenController.dispose();
     passwordController.dispose();
     confirmController.dispose();
     super.dispose();
   }
 
+  // Acciones
+
   void submitEmail() {
-    if (!emailFormKey.currentState!.validate()) return;
+    // Valida solo el campo de email cuando aún no se ha enviado el token
+    if (emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email')),
+      );
+      return;
+    }
+    if (!emailController.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid email')),
+      );
+      return;
+    }
+
     context.read<AuthBloc>().add(
       AuthForgotPasswordRequest(email: emailController.text.trim()),
     );
   }
 
   void submitReset() {
-    if (!resetFormKey.currentState!.validate()) return;
+    if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthResetPasswordRequest(
-        token: tokenControler.text.trim(),
+        token: tokenController.text.trim(),
         newPassword: passwordController.text,
       ),
     );
   }
+
+  void _revealResetFields() {
+    setState(() => tokenSent = true);
+    animationController.forward(from: 0);
+  }
+
+  void _hideResetFields() {
+    animationController.reverse().then((_) {
+      setState(() => tokenSent = false);
+    });
+  }
+
+  // Widget principal
 
   @override
   Widget build(BuildContext context) {
@@ -63,23 +103,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthActionSuccess) {
-              if (state.action == 'forgot_password') {
-                setState(() => tokenSent = true);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(state.message)));
+              if (state.action == AuthAction.forgotPassword) {
+                _revealResetFields();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.message)),
+                );
               }
-              if (state.action == 'reset_password') {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(state.message)));
+              if (state.action == AuthAction.resetPassword) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.message)),
+                );
                 Navigator.pushReplacementNamed(context, '/login');
               }
             }
             if (state is AuthError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
             }
           },
           builder: (context, state) {
@@ -87,9 +127,239 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: tokenSent
-                  ? buildResetForm(isLoading)
-                  : buildEmailForm(isLoading),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 60),
+
+                    const UniMarketHeader(subtitle: 'Reset your password'),
+
+                    const SizedBox(height: 16),
+
+                    // Banner principal de la page
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: tokenSent
+                          ? infoBanner(
+                        key: const ValueKey('sent'),
+                        text:
+                        'Check your email for the code we just sent.',
+                        color: AppColors.secondaryGreen,
+                      )
+                          : infoBanner(
+                        key: const ValueKey('enter'),
+                        text:
+                        "Enter your email and we'll send you a reset code.",
+                        color: AppColors.primaryBlue,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // email
+                    fieldLabel('University Email'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction:
+                      tokenSent ? TextInputAction.next : TextInputAction.done,
+                      enabled: !tokenSent, // se bloquea después de enviar
+                      onFieldSubmitted: (_) {
+                        if (!tokenSent) submitEmail();
+                      },
+                      decoration: uniInputDecoration(
+                        hint: 'you@university.edu',
+                        icon: Icons.email_outlined,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Required';
+                        if (!v.contains('@')) return 'Enter a valid email';
+                        return null;
+                      },
+                    ),
+
+                    // Campos de reseteo de contraseña
+                    const SizedBox(height: 16),
+                    SizeTransition(
+                      sizeFactor: fadeSlide,
+                      axisAlignment: -1,
+                      child: FadeTransition(
+                        opacity: fadeSlide,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 16),
+
+                            // Reset code
+                            fieldLabel('Reset Code'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: tokenController,
+                              textInputAction: TextInputAction.next,
+                              decoration: uniInputDecoration(
+                                hint: 'Paste your code',
+                                icon: Icons.confirmation_number_outlined,
+                              ),
+                              validator: tokenSent
+                                  ? (v) => (v == null || v.isEmpty)
+                                  ? 'Enter the code from your email'
+                                  : null
+                                  : null,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // New password
+                            fieldLabel('New Password'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: passwordController,
+                              obscureText: obscurePassword,
+                              textInputAction: TextInputAction.next,
+                              decoration: uniInputDecoration(
+                                hint: 'Min. 6 characters',
+                                icon: Icons.lock_outline,
+                                suffix: IconButton(
+                                  icon: Icon(
+                                    obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    color: Colors.grey,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => setState(
+                                        () => obscurePassword = !obscurePassword,
+                                  ),
+                                ),
+                              ),
+                              validator: tokenSent
+                                  ? (v) {
+                                if (v == null || v.isEmpty) return 'Required';
+                                if (v.length < 6) {
+                                  return 'At least 6 characters';
+                                }
+                                return null;
+                              }
+                                  : null,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Confirm password
+                            fieldLabel('Confirm New Password'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: confirmController,
+                              obscureText: obscureConfirm,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => submitReset(),
+                              decoration: uniInputDecoration(
+                                hint: 'Repeat your password',
+                                icon: Icons.lock_outline,
+                                suffix: IconButton(
+                                  icon: Icon(
+                                    obscureConfirm
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    color: Colors.grey,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => setState(
+                                        () => obscureConfirm = !obscureConfirm,
+                                  ),
+                                ),
+                              ),
+                              validator: tokenSent
+                                  ? (v) {
+                                if (v == null || v.isEmpty) return 'Required';
+                                if (v != passwordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              }
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Boton principal
+                    ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : tokenSent
+                          ? submitReset
+                          : submitEmail,
+                      style: primaryButtonStyle(),
+                      child: isLoading
+                          ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          tokenSent ? 'Reset Password' : 'Send Reset Code',
+                          key: ValueKey(tokenSent),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Links de la parte de abajo
+                    if (tokenSent)
+                      Center(
+                        child: TextButton(
+                          onPressed: _hideResetFields,
+                          child: const Text(
+                            "Didn't get a code? Go back",
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Remember your password?',
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Log In',
+                              style: TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -97,244 +367,26 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-  // Poner correo
+  // helpers generales
 
-  Widget buildEmailForm(bool isLoading) {
-    return Form(
-      key: emailFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 60),
-
-          const UniMarketHeader(subtitle: 'Reset your password'),
-
-          const SizedBox(height: 16),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                "Enter your email and we'll send you a reset code.",
-                style: TextStyle(fontSize: 14, color: AppColors.primaryBlue),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          fieldLabel('University Email'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => submitEmail(),
-            decoration: uniInputDecoration(
-              hint: 'you@university.edu',
-              icon: Icons.email_outlined,
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Required';
-              if (!v.contains('@')) return 'Enter a valid email';
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 28),
-
-          ElevatedButton(
-            onPressed: isLoading ? null : submitEmail,
-            style: primaryButtonStyle(),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Send Reset Code',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-          ),
-
-          const SizedBox(height: 24),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Remember your password?',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Log In',
-                  style: TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  // PASO 2: usar el token para resetear
-
-  Widget buildResetForm(bool isLoading) {
-    return Form(
-      key: resetFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 60),
-
-          const UniMarketHeader(subtitle: 'Enter your reset code'),
-
-          const SizedBox(height: 16),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'Check your email for the code we just sent.',
-                style: TextStyle(fontSize: 14, color: AppColors.secondaryGreen),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // Codigo de reseteo
-          fieldLabel('Reset Code'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: tokenControler,
-            textInputAction: TextInputAction.next,
-            decoration: uniInputDecoration(
-              hint: 'Paste your code',
-              icon: Icons.confirmation_number_outlined,
-            ),
-            validator: (v) => (v == null || v.isEmpty)
-                ? 'Enter the code from your email'
-                : null,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Nueva contraseña
-          fieldLabel('New Password'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: passwordController,
-            obscureText: obscurePassword,
-            textInputAction: TextInputAction.next,
-            decoration: uniInputDecoration(
-              hint: 'Min. 6 characters',
-              icon: Icons.lock_outline,
-              suffix: IconButton(
-                icon: Icon(
-                  obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: Colors.grey,
-                  size: 20,
-                ),
-                onPressed: () =>
-                    setState(() => obscurePassword = !obscurePassword),
-              ),
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Required';
-              if (v.length < 6) return 'At least 6 characters';
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Confirmar contraseña
-          fieldLabel('Confirm New Password'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: confirmController,
-            obscureText: obscureComfirm,
-            textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => submitReset(),
-            decoration: uniInputDecoration(
-              hint: 'Repeat your password',
-              icon: Icons.lock_outline,
-              suffix: IconButton(
-                icon: Icon(
-                  obscureComfirm
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: Colors.grey,
-                  size: 20,
-                ),
-                onPressed: () =>
-                    setState(() => obscureComfirm = !obscureComfirm),
-              ),
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Required';
-              if (v != passwordController.text) return 'Passwords do not match';
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 28),
-
-          ElevatedButton(
-            onPressed: isLoading ? null : submitReset,
-            style: primaryButtonStyle(),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Reset Password',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-          ),
-
-          const SizedBox(height: 16),
-
-          Center(
-            child: TextButton(
-              onPressed: () => setState(() => tokenSent = false),
-              child: const Text(
-                "Didn't get a code? Go back",
-                style: TextStyle(color: AppColors.primaryBlue, fontSize: 13),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-        ],
+  Widget infoBanner({
+    required Key key,
+    required String text,
+    required Color color,
+  }) {
+    return Center(
+      key: key,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 14, color: color),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

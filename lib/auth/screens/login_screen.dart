@@ -49,9 +49,6 @@ class LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              Navigator.pushReplacementNamed(context, '/home');
-            }
             if (state is AuthError) {
               ScaffoldMessenger.of(
                 context,
