@@ -32,7 +32,15 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
     'Other',
   ];
 
+  final List<String> _conditions = const [
+    'New',
+    'Like new',
+    'Good',
+    'Fair',
+  ];
+
   late String _selectedCategory;
+  late String _selectedCondition;
 
   bool get _isEditing => widget.product != null;
 
@@ -51,6 +59,9 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
     );
     _selectedCategory = _mapApiCategoryToUi(
       widget.product?.category ?? 'other',
+    );
+    _selectedCondition = _mapApiConditionToUi(
+      widget.product?.condition ?? 'good',
     );
   }
 
@@ -71,6 +82,21 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
       case 'other':
       default:
         return 'Other';
+    }
+  }
+
+  String _mapApiConditionToUi(String apiCondition) {
+    switch (apiCondition.toLowerCase()) {
+      case 'new':
+        return 'New';
+      case 'like_new':
+        return 'Like new';
+      case 'good':
+        return 'Good';
+      case 'fair':
+        return 'Fair';
+      default:
+        return 'Good';
     }
   }
 
@@ -107,6 +133,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
           description: _descriptionController.text.trim(),
           price: price,
           category: _selectedCategory,
+          condition: _selectedCondition,
         ),
       );
     } else {
@@ -116,6 +143,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
           description: _descriptionController.text.trim(),
           price: price,
           category: _selectedCategory,
+          condition: _selectedCondition,
         ),
       );
     }
@@ -218,6 +246,32 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                   onChanged: (value) {
                     if (value == null) return;
                     setState(() => _selectedCategory = value);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: fieldLabel('Condition'),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedCondition,
+                  decoration: uniInputDecoration(
+                    hint: 'Select the product condition',
+                    icon: Icons.verified_outlined,
+                  ),
+                  items: _conditions
+                      .map(
+                        (condition) => DropdownMenuItem<String>(
+                      value: condition,
+                      child: Text(condition),
+                    ),
+                  )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _selectedCondition = value);
                   },
                 ),
                 const SizedBox(height: 28),

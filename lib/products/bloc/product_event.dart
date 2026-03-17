@@ -20,16 +20,18 @@ class CreateProductRequested extends ProductEvent {
   final String description;
   final double price;
   final String category;
+  final String condition;
 
   const CreateProductRequested({
     required this.title,
     required this.description,
     required this.price,
     required this.category,
+    required this.condition,
   });
 
   @override
-  List<Object?> get props => [title, description, price, category];
+  List<Object?> get props => [title, description, price, category, condition];
 }
 
 class UpdateProductRequested extends ProductEvent {
@@ -38,6 +40,7 @@ class UpdateProductRequested extends ProductEvent {
   final String description;
   final double price;
   final String category;
+  final String condition;
 
   const UpdateProductRequested({
     required this.productId,
@@ -45,6 +48,7 @@ class UpdateProductRequested extends ProductEvent {
     required this.description,
     required this.price,
     required this.category,
+    required this.condition,
   });
 
   @override
@@ -54,6 +58,7 @@ class UpdateProductRequested extends ProductEvent {
     description,
     price,
     category,
+    condition,
   ];
 }
 

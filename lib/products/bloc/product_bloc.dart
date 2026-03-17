@@ -81,6 +81,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         description: event.description,
         price: event.price,
         category: event.category,
+        condition: event.condition,
       );
 
       final myProducts = await repository.getSellerProducts();
@@ -116,6 +117,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         description: event.description,
         price: event.price,
         category: event.category,
+        condition: event.condition,
       );
 
       final myProducts = await repository.getSellerProducts();

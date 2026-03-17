@@ -20,12 +20,14 @@ class ProductRepository {
     required String description,
     required double price,
     required String category,
+    required String condition,
   }) async {
     return apiClient.createProduct(
       title: title,
       description: description,
       price: price,
       category: category,
+      condition: condition,
     );
   }
 
@@ -35,6 +37,7 @@ class ProductRepository {
     required String description,
     required double price,
     required String category,
+    required String condition,
   }) async {
     return apiClient.updateProduct(
       productId: productId,
@@ -42,6 +45,7 @@ class ProductRepository {
       description: description,
       price: price,
       category: category,
+      condition: condition,
     );
   }
 

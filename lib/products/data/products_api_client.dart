@@ -51,6 +51,7 @@ class ProductsApiClient {
     required String description,
     required double price,
     required String category,
+    required String condition,
   }) async {
     final response = await dio.post(
       '/listings',
@@ -58,7 +59,7 @@ class ProductsApiClient {
         'title': title,
         'product': description,
         'category': _mapCategory(category),
-        'condition': 'good',
+        'condition': _mapCondition(condition),
         'selling_price': price,
       },
     );
@@ -77,6 +78,7 @@ class ProductsApiClient {
     required String description,
     required double price,
     required String category,
+    required String condition,
   }) async {
     final response = await dio.patch(
       '/listings/$productId',
@@ -84,6 +86,7 @@ class ProductsApiClient {
         'title': title,
         'product': description,
         'category': _mapCategory(category),
+        'condition': _mapCondition(condition),
         'selling_price': price,
       },
     );
@@ -136,11 +139,23 @@ class ProductsApiClient {
         return 'electronics';
       case 'other':
         return 'other';
-      case 'clothes':
-      case 'home':
-      case 'sports':
       default:
         return 'other';
+    }
+  }
+
+  String _mapCondition(String uiCondition) {
+    switch (uiCondition.toLowerCase()) {
+      case 'new':
+        return 'new';
+      case 'like new':
+        return 'like_new';
+      case 'good':
+        return 'good';
+      case 'fair':
+        return 'fair';
+      default:
+        return 'good';
     }
   }
 }
