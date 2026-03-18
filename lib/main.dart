@@ -3,19 +3,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'theme/app_theme.dart';
 import 'auth/auth.dart';
+import 'analytics/analytics.dart';
 import 'home/screens/home_screen.dart';
 
 void main() {
+  final appStartTime = DateTime.now();
+
   runApp(
-    AuthProviders(
-      baseUrl: 'https://group-42-backend.vercel.app/api/v1/',
-      child: const UniMarketApp(),
+    AnalyticsProviders(
+      analyticsBaseUrl: 'https://group-42-analytic-engine-back.vercel.app/',
+      child: AuthProviders(
+        baseUrl: 'https://group-42-backend.vercel.app/api/v1/',
+        child: UniMarketApp(appStartTime: appStartTime),
+      ),
     ),
   );
 }
 
 class UniMarketApp extends StatelessWidget {
-  const UniMarketApp({super.key});
+  final DateTime appStartTime;
+
+  const UniMarketApp({super.key, required this.appStartTime});
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +65,10 @@ class UniMarketApp extends StatelessWidget {
 
           // Autenticado, lleva al home
           if (state is AuthAuthenticated) {
-            return const HomeScreen();
+            return StartupTracker(
+              appStartTime: appStartTime,
+              child: const HomeScreen(),
+            );
           }
 
           // No autenticado, lleva al login
@@ -74,4 +85,40 @@ class UniMarketApp extends StatelessWidget {
       },
     );
   }
+}
+
+//Widget que trackea el startup time una sola vez cuando se muestra el home
+class StartupTracker extends StatefulWidget {
+  final DateTime appStartTime;
+  final Widget child;
+
+  const StartupTracker({required this.appStartTime, required this.child});
+
+  @override
+  State<StartupTracker> createState() => StartupTrackerState();
+}
+
+class StartupTrackerState extends State<StartupTracker> {
+  bool tracked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!tracked) {
+      tracked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final bloc = context.read<AnalyticsBloc>();
+        // Inicializar device info antes de enviar el evento
+        await bloc.deviceInfo.init();
+        final durationMs = DateTime.now()
+            .difference(widget.appStartTime)
+            .inMilliseconds
+            .toDouble();
+        bloc.add(TrackAppStartup(durationMs: durationMs));
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
