@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../auth/auth.dart';
+import '../../analytics/analytics.dart';
 import '../../products/products_providers.dart';
 import '../../products/screens/browse_listings_screen.dart';
 import '../../products/screens/seller_products_screen.dart';
@@ -34,6 +35,7 @@ class _HomeScreenView extends StatefulWidget {
 
 class _HomeScreenViewState extends State<_HomeScreenView> {
   int _selectedIndex = 0;
+  DateTime? navStartTime;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +56,22 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
+          navStartTime = DateTime.now();
           setState(() => _selectedIndex = index);
+          // Trackear navegación una vez que se renderiza la nueva pantalla
+          // Widgets binding sirve para ejecutar algo despuess de que el widget se haya renderizado,
+          // es decir justo lo que necesitamos para el bq1.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (navStartTime != null) {
+              final durationMs = DateTime.now()
+                  .difference(navStartTime!)
+                  .inMilliseconds
+                  .toDouble();
+              context.read<AnalyticsBloc>().add(
+                    TrackScreenNavigation(durationMs: durationMs),
+                  );
+            }
+          });
         },
         destinations: const [
           NavigationDestination(
