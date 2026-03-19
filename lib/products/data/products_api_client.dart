@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import '../models/product_dto.dart';
 
@@ -5,6 +7,8 @@ class ProductsApiClient {
   final Dio dio;
 
   ProductsApiClient({required this.dio});
+
+  // Liostings
 
   Future<List<ProductDto>> getPublicListings() async {
     final response = await dio.get('/listings');
@@ -52,7 +56,14 @@ class ProductsApiClient {
     required double price,
     required String category,
     required String condition,
+    required List<String> imageUrls, // nuevo item de image urls
   }) async {
+    final images = imageUrls.asMap().entries.map((e) => { // mappear las images
+      'url': e.value,
+      'is_primary': e.key == 0,
+      'sort_order': e.key,
+    }).toList();
+
     final response = await dio.post(
       '/listings',
       data: {
@@ -61,6 +72,7 @@ class ProductsApiClient {
         'category': _mapCategory(category),
         'condition': _mapCondition(condition),
         'selling_price': price,
+        'images': images,
       },
     );
 
@@ -79,16 +91,29 @@ class ProductsApiClient {
     required double price,
     required String category,
     required String condition,
+    List<String>? newImageUrls,
+    List<int>? removedImageIds,
   }) async {
+    final body = <String, dynamic>{
+      'title': title,
+      'product': description,
+      'category': _mapCategory(category),
+      'condition': _mapCondition(condition),
+      'selling_price': price,
+    };
+
+    // poder actualizar las images
+    if (newImageUrls != null && newImageUrls.isNotEmpty) {
+      body['images'] = newImageUrls.map((url) => {'url': url}).toList();
+    }
+
+    if (removedImageIds != null && removedImageIds.isNotEmpty) {
+      body['removed_image_ids'] = removedImageIds;
+    }
+
     final response = await dio.patch(
       '/listings/$productId',
-      data: {
-        'title': title,
-        'product': description,
-        'category': _mapCategory(category),
-        'condition': _mapCondition(condition),
-        'selling_price': price,
-      },
+      data: body,
     );
 
     final data = response.data;
@@ -130,6 +155,63 @@ class ProductsApiClient {
 
     throw Exception('Invalid mark as available response format.');
   }
+
+  // Cloudinary (lo de las fotos xd)
+
+  // Request de la firma para el upload a cloudinary
+  Future<Map<String, dynamic>> getCloudinarySignature({
+    String? folder,
+  }) async {
+    final response = await dio.post(
+      '/uploads/cloudinary-signature',
+      data: {
+        if (folder != null) 'folder': folder,
+      },
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) return data;
+
+    throw Exception('Invalid cloudinary signature response.');
+  }
+
+  // Directamente subir la img a cloudinary (firmado por el back)
+  Future<String> uploadImageToCloudinary(File imageFile) async {
+    final sig = await getCloudinarySignature(folder: 'unimarket/listings'); // obtener firma antes de subir
+
+    // extraer datos de la firma por el back
+    final cloudName = sig['cloud_name'] ?? sig['cloudName'];
+    final apiKey = sig['api_key'] ?? sig['apiKey'];
+    final timestamp = sig['timestamp'];
+    final signature = sig['signature'];
+    final folder = sig['folder'];
+
+    final uploadDio = Dio();
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      ),
+      'api_key': apiKey,
+      'timestamp': timestamp,
+      'signature': signature,
+      if (folder != null) 'folder': folder,
+    });
+
+    final uploadResponse = await uploadDio.post(
+      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+      data: formData,
+    );
+
+    final uploadData = uploadResponse.data;
+    if (uploadData is Map<String, dynamic>) {
+      return (uploadData['secure_url'] ?? uploadData['url']) as String;
+    }
+
+    throw Exception('Invalid Cloudinary upload response.');
+  }
+
+  // Categoria y condiciom
 
   String _mapCategory(String uiCategory) {
     switch (uiCategory.toLowerCase()) {

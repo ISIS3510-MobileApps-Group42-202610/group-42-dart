@@ -76,12 +76,16 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     ));
 
     try {
+      // Subir las imagenes a cloudinary
+      final imageUrls = await repository.uploadImages(event.imageFiles);
+
       await repository.createProduct(
         title: event.title,
         description: event.description,
         price: event.price,
         category: event.category,
         condition: event.condition,
+        imageUrls: imageUrls, // nuevo item de image urls
       );
 
       final myProducts = await repository.getSellerProducts();
@@ -111,6 +115,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     ));
 
     try {
+      // Subir la foto a cloudinary
+      List<String>? newImageUrls;
+      if (event.newImageFiles.isNotEmpty) {
+        newImageUrls = await repository.uploadImages(event.newImageFiles);
+      }
+
       await repository.updateProduct(
         productId: event.productId,
         title: event.title,
@@ -118,6 +128,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         price: event.price,
         category: event.category,
         condition: event.condition,
+        newImageUrls: newImageUrls, // nuevo item de image urls, update del producto en el listing
+        removedImageIds: event.removedImageIds.isNotEmpty
+            ? event.removedImageIds
+            : null,
       );
 
       final myProducts = await repository.getSellerProducts();

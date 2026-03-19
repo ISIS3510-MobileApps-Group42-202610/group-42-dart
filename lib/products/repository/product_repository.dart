@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
 import '../models/product_dto.dart';
@@ -21,6 +23,7 @@ class ProductRepository {
     required double price,
     required String category,
     required String condition,
+    required List<String> imageUrls,
   }) async {
     return apiClient.createProduct(
       title: title,
@@ -28,6 +31,7 @@ class ProductRepository {
       price: price,
       category: category,
       condition: condition,
+      imageUrls: imageUrls,
     );
   }
 
@@ -38,6 +42,8 @@ class ProductRepository {
     required double price,
     required String category,
     required String condition,
+    List<String>? newImageUrls,
+    List<int>? removedImageIds,
   }) async {
     return apiClient.updateProduct(
       productId: productId,
@@ -46,6 +52,8 @@ class ProductRepository {
       price: price,
       category: category,
       condition: condition,
+      newImageUrls: newImageUrls,
+      removedImageIds: removedImageIds,
     );
   }
 
@@ -59,6 +67,16 @@ class ProductRepository {
 
   Future<ProductDto> markProductAsAvailable(String productId) async {
     return apiClient.markAsAvailable(productId);
+  }
+
+  // subir las fotos a cloudinary, obtener el url de cada foto
+  Future<List<String>> uploadImages(List<File> imageFiles) async {
+    final urls = <String>[];
+    for (final file in imageFiles) {
+      final url = await apiClient.uploadImageToCloudinary(file);
+      urls.add(url);
+    }
+    return urls;
   }
 
   String extractMessage(Object error) {
