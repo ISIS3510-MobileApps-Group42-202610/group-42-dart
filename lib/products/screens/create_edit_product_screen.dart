@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../theme/app_theme.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../models/product_dto.dart';
+import '../widgets/image_grid.dart';
 
 class CreateEditProductScreen extends StatefulWidget {
   final ProductDto? product;
@@ -21,6 +25,7 @@ class CreateEditProductScreen extends StatefulWidget {
 
 class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
   final _formKey = GlobalKey<FormState>();
+  final picker = ImagePicker(); // image picker de flutter que facilita el manejo de galeria y camara
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
@@ -41,6 +46,15 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
 
   late String _selectedCategory;
   late String _selectedCondition;
+
+  // imagenes locales (mientras el usuario crea el listing)
+  final List<File> newImageFiles = [];
+
+  // Imagenes que ya existen (solo para cuando el usuario esta editando)
+  late List<ProductImageDto> existingImages;
+
+  // Imagenes (id) de imgs que el usuario quiere remover del listing
+  final List<int> removedImageIds = [];
 
   bool get _isEditing => widget.product != null;
 
@@ -63,6 +77,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
     _selectedCondition = _mapApiConditionToUi(
       widget.product?.condition ?? 'good',
     );
+    existingImages = List.of(widget.product?.images ?? []);
   }
 
   @override
@@ -120,8 +135,87 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
     return null;
   }
 
-  void _submit() {
+  // ========================
+  // Escoger imagenes
+
+
+  // Escoger imagenes con camara
+  Future<void> pickFromCamera() async {
+    final picked = await picker.pickImage(
+      source: ImageSource.camera, // el source es la camara del selular (SENSOR)
+      imageQuality: 80,
+      maxWidth: 1200,
+    );
+    if (picked != null) {
+      setState(() => newImageFiles.add(File(picked.path)));
+    }
+  }
+
+  // Escoger imagenes con la galeria del celular
+  Future<void> pickFromGallery() async {
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery, // el source es la galeria
+      imageQuality: 80,
+      maxWidth: 1200,
+    );
+    if (picked != null) {
+      setState(() => newImageFiles.add(File(picked.path)));
+    }
+  }
+
+  // Mostrar el dialogo para escoger la fuente d elas imagenes (camara o galeria)
+  void showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.pop(context);
+                pickFromCamera();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                pickFromGallery();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // quital img de la lista de imagenes
+  void removeNewImage(int index) {
+    setState(() => newImageFiles.removeAt(index));
+  }
+
+  // quitar el img que ya existe (ponerlas en removed)
+  void removeExistingImage(int imageId) {
+    setState(() => removedImageIds.add(imageId));
+  }
+
+  // submit
+
+  void submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    if (!_isEditing && newImageFiles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one product photo.'),
+        ),
+      );
+      return;
+    }
 
     final price = double.parse(_priceController.text.trim());
 
@@ -134,6 +228,8 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
           price: price,
           category: _selectedCategory,
           condition: _selectedCondition,
+          newImageFiles: newImageFiles,
+          removedImageIds: removedImageIds,
         ),
       );
     } else {
@@ -144,6 +240,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
           price: price,
           category: _selectedCategory,
           condition: _selectedCondition,
+          imageFiles: newImageFiles,
         ),
       );
     }
@@ -151,8 +248,15 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
     Navigator.pop(context);
   }
 
+  // widget
+
   @override
   Widget build(BuildContext context) {
+    // quitar las imagenes removidas
+    final visibleExisting = existingImages
+        .where((img) => !removedImageIds.contains(img.id))
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit listing' : 'Create listing'),
@@ -174,6 +278,22 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // fotos
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: fieldLabel('Product photos'),
+                ),
+                const SizedBox(height: 8),
+                ImageGrid(
+                  existingImages: visibleExisting,
+                  newFiles: newImageFiles,
+                  onAddTap: showImageSourceSheet, // boton de add photo
+                  onRemoveExisting: removeExistingImage,
+                  onRemoveNew: removeNewImage,
+                ),
+                const SizedBox(height: 16),
+
+                // titulo
                 Align(
                   alignment: Alignment.centerLeft,
                   child: fieldLabel('Title'),
@@ -189,6 +309,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // descripcion
                 Align(
                   alignment: Alignment.centerLeft,
                   child: fieldLabel('Product description'),
@@ -206,6 +327,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // precio
                 Align(
                   alignment: Alignment.centerLeft,
                   child: fieldLabel('Selling price'),
@@ -224,6 +346,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // categoria
                 Align(
                   alignment: Alignment.centerLeft,
                   child: fieldLabel('Category'),
@@ -250,6 +373,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // condicion
                 Align(
                   alignment: Alignment.centerLeft,
                   child: fieldLabel('Condition'),
@@ -276,11 +400,12 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 ),
                 const SizedBox(height: 28),
 
+                // submit
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: primaryButtonStyle(),
-                    onPressed: _submit,
+                    onPressed: submit,
                     child: Text(_isEditing ? 'Save changes' : 'Publish listing'),
                   ),
                 ),

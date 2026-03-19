@@ -19,17 +19,18 @@ class PublicListingCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.inventory_2_outlined,
-                color: AppColors.primaryBlue,
-                size: 32,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: product.imageUrl != null
+                    ? Image.network(
+                  product.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _placeholder(),
+                )
+                    : _placeholder(),
               ),
             ),
             const SizedBox(width: 14),
@@ -83,6 +84,19 @@ class PublicListingCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: 72,
+      height: 72,
+      color: AppColors.primaryBlue.withOpacity(0.08),
+      child: const Icon(
+        Icons.inventory_2_outlined,
+        color: AppColors.primaryBlue,
+        size: 32,
       ),
     );
   }

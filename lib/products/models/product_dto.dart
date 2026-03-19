@@ -1,5 +1,41 @@
 import 'package:equatable/equatable.dart';
 
+// esta nueva clase es el DTO de image del backend
+class ProductImageDto extends Equatable {
+  final int id;
+  final String url;
+  final bool isPrimary;
+  final int sortOrder;
+
+  const ProductImageDto({
+    required this.id,
+    required this.url,
+    this.isPrimary = false,
+    this.sortOrder = 0,
+  });
+
+  factory ProductImageDto.fromJson(Map<String, dynamic> json) {
+    return ProductImageDto(
+      id: json['id'] as int,
+      url: (json['url'] ?? '').toString(),
+      isPrimary: json['is_primary'] as bool? ?? false,
+      sortOrder: json['sort_order'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'url': url,
+      'is_primary': isPrimary,
+      'sort_order': sortOrder,
+    };
+  }
+
+  @override
+  List<Object?> get props => [id, url, isPrimary, sortOrder];
+}
+
 class ProductDto extends Equatable {
   final String id;
   final String title;
@@ -10,6 +46,7 @@ class ProductDto extends Equatable {
   final String condition;
   final String? imageUrl;
   final String? sellerName;
+  final List<ProductImageDto> images; // nueva propiedad de images
 
   const ProductDto({
     required this.id,
@@ -21,6 +58,7 @@ class ProductDto extends Equatable {
     required this.condition,
     this.imageUrl,
     this.sellerName,
+    this.images = const [], // nueva propiedad de images
   });
 
   bool get isSold => !active;
@@ -35,6 +73,7 @@ class ProductDto extends Equatable {
     String? condition,
     String? imageUrl,
     String? sellerName,
+    List<ProductImageDto>? images, // imagesss
   }) {
     return ProductDto(
       id: id ?? this.id,
@@ -46,13 +85,22 @@ class ProductDto extends Equatable {
       condition: condition ?? this.condition,
       imageUrl: imageUrl ?? this.imageUrl,
       sellerName: sellerName ?? this.sellerName,
+      images: images ?? this.images, // imagess xd
     );
   }
 
   factory ProductDto.fromListingJson(Map<String, dynamic> json) {
     String? resolvedImageUrl;
+    final List<ProductImageDto> parsedImages = [];
+
     final images = json['images'];
     if (images is List && images.isNotEmpty) {
+      for (final img in images) {
+        // extraer las images del json
+        if (img is Map<String, dynamic>) {
+          parsedImages.add(ProductImageDto.fromJson(img));
+        }
+      }
       final first = images.first;
       if (first is Map<String, dynamic>) {
         resolvedImageUrl = first['url'] as String?;
@@ -81,6 +129,7 @@ class ProductDto extends Equatable {
       condition: (json['condition'] ?? 'good').toString(),
       imageUrl: json['image_url'] as String? ?? resolvedImageUrl,
       sellerName: resolvedSellerName,
+      images: parsedImages, // imagesss
     );
   }
 
@@ -109,5 +158,6 @@ class ProductDto extends Equatable {
     condition,
     imageUrl,
     sellerName,
+    images, // imagess
   ];
 }
