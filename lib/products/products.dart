@@ -10,3 +10,4 @@ export 'screens/seller_products_screen.dart';
 export 'screens/create_edit_product_screen.dart';
 export 'widgets/product_card.dart';
 export 'widgets/public_listing_card.dart';
+export 'services/smart_recommendation_service.dart';
