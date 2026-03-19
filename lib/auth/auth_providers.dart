@@ -29,6 +29,7 @@ class AuthProviders extends StatelessWidget {
 
     return BlocProvider(
       create: (_) =>
+      // ..add es para ejecutar el check session justo despues del bloc
           AuthBloc(repositoryTemp: repository)..add(const AuthCheckSession()),
       child: child,
     );
