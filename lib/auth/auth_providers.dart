@@ -4,7 +4,7 @@ import 'repositories/auth_repository.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'data/auth_api_client.dart';
-import 'data/dio_client.dart';
+import 'data/auth_dio_client.dart';
 import 'data/token_storage.dart';
 
 class AuthProviders extends StatelessWidget {
