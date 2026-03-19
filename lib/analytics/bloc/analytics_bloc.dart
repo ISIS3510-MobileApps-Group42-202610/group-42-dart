@@ -38,8 +38,9 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
           appVersion: appVersion,
         ),
       );
+      emit(const AnalyticsIdle()); // por si acaso
     } catch (e) {
-      // nunca debe crashear la app
+      emit(AnalyticsError(message: e.toString()));
     }
   }
 
@@ -59,8 +60,9 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
           appVersion: appVersion,
         ),
       );
+      emit(const AnalyticsIdle()); // por si acaso
     } catch (e) {
-      // nunca debe crashear la app
+      emit(AnalyticsError(message: e.toString()));
     }
   }
 }
