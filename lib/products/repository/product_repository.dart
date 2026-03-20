@@ -79,6 +79,10 @@ class ProductRepository {
     return urls;
   }
 
+  Future<void> buyProduct(String productId) async {
+    await apiClient.buyProduct(productId);
+  }
+
   String extractMessage(Object error) {
     if (error is DioException) {
       final response = error.response;

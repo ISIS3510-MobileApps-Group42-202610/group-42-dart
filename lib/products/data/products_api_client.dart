@@ -30,12 +30,7 @@ class ProductsApiClient {
   }
 
   Future<void> buyProduct(String productId) async {
-    // Intentamos convertir a int para evitar el error "numeric string is expected"
-    final dynamic numericId = int.tryParse(productId) ?? productId;
-
-    await dio.post('/transactions', data: {
-      'listing_id': numericId, 
-    });
+    await dio.post('/products/$productId/buy');
   }
 
 
