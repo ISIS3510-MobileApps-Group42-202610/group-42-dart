@@ -2,13 +2,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'product_event.dart';
 import 'product_state.dart';
 import '../repository/product_repository.dart';
+import '../models/product_dto.dart';
 
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final ProductRepository repository;
 
   ProductBloc({required this.repository}) : super(const ProductInitial()) {
     on<LoadPublicListings>(_onLoadPublicListings);
-    //   on<SearchPublicListings>(_onSearchPublicListings);
     on<BuyProductRequested>(_onBuyProduct);
     on<LoadSellerProducts>(_onLoadSellerProducts);
     on<CreateProductRequested>(_onCreateProduct);
@@ -19,9 +19,9 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onLoadPublicListings(
-      LoadPublicListings event,
-      Emitter<ProductState> emit,
-      ) async {
+    LoadPublicListings event,
+    Emitter<ProductState> emit,
+  ) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -29,7 +29,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
     try {
       final publicProducts = await repository.getPublicListings();
-
       emit(ProductLoaded(
         myProducts: state.myProducts,
         publicProducts: publicProducts,
@@ -43,8 +42,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onLoadSellerProducts(LoadSellerProducts event,
-      Emitter<ProductState> emit,) async {
+  Future<void> _onLoadSellerProducts(
+    LoadSellerProducts event,
+    Emitter<ProductState> emit,
+  ) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -52,7 +53,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
     try {
       final myProducts = await repository.getSellerProducts();
-
       emit(ProductLoaded(
         myProducts: myProducts,
         publicProducts: state.publicProducts,
@@ -66,195 +66,133 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onCreateProduct(CreateProductRequested event,
-      Emitter<ProductState> emit,) async {
+  Future<void> _onBuyProduct(
+    BuyProductRequested event,
+    Emitter<ProductState> emit,
+  ) async {
+    final List<ProductDto> previousPublicList = List.from(state.publicProducts);
+    
     emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
-    ));
-
-    try {
-      // Subir las imagenes a cloudinary
-      final imageUrls = await repository.uploadImages(event.imageFiles);
-
-      await repository.createProduct(
-        title: event.title,
-        description: event.description,
-        price: event.price,
-        category: event.category,
-        condition: event.condition,
-        imageUrls: imageUrls, // nuevo item de image urls
-      );
-
-      final myProducts = await repository.getSellerProducts();
-      final publicProducts = await repository.getPublicListings();
-
-      emit(ProductActionSuccess(
-        message: 'Listing created successfully.',
-        myProducts: myProducts,
-        publicProducts: publicProducts,
-      ));
-    } catch (e) {
-      emit(ProductError(
-        message: repository.extractMessage(e),
-        myProducts: state.myProducts,
-        publicProducts: state.publicProducts,
-      ));
-    }
-  }
-
-  Future<void> _onUpdateProduct(UpdateProductRequested event,
-      Emitter<ProductState> emit,) async {
-    emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
-    ));
-
-    try {
-      // Subir la foto a cloudinary
-      List<String>? newImageUrls;
-      if (event.newImageFiles.isNotEmpty) {
-        newImageUrls = await repository.uploadImages(event.newImageFiles);
-      }
-
-      await repository.updateProduct(
-        productId: event.productId,
-        title: event.title,
-        description: event.description,
-        price: event.price,
-        category: event.category,
-        condition: event.condition,
-        newImageUrls: newImageUrls, // nuevo item de image urls, update del producto en el listing
-        removedImageIds: event.removedImageIds.isNotEmpty
-            ? event.removedImageIds
-            : null,
-      );
-
-      final myProducts = await repository.getSellerProducts();
-      final publicProducts = await repository.getPublicListings();
-
-      emit(ProductActionSuccess(
-        message: 'Listing updated successfully.',
-        myProducts: myProducts,
-        publicProducts: publicProducts,
-      ));
-    } catch (e) {
-      emit(ProductError(
-        message: repository.extractMessage(e),
-        myProducts: state.myProducts,
-        publicProducts: state.publicProducts,
-      ));
-    }
-  }
-
-  Future<void> _onDeleteProduct(DeleteProductRequested event,
-      Emitter<ProductState> emit,) async {
-    emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
-    ));
-
-    try {
-      await repository.deleteProduct(event.productId);
-
-      final myProducts = await repository.getSellerProducts();
-      final publicProducts = await repository.getPublicListings();
-
-      emit(ProductActionSuccess(
-        message: 'Listing removed successfully.',
-        myProducts: myProducts,
-        publicProducts: publicProducts,
-      ));
-    } catch (e) {
-      emit(ProductError(
-        message: repository.extractMessage(e),
-        myProducts: state.myProducts,
-        publicProducts: state.publicProducts,
-      ));
-    }
-  }
-
-  Future<void> _onMarkAsSold(MarkProductAsSoldRequested event,
-      Emitter<ProductState> emit,) async {
-    emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
-    ));
-
-    try {
-      await repository.markProductAsSold(event.productId);
-
-      final myProducts = await repository.getSellerProducts();
-      final publicProducts = await repository.getPublicListings();
-
-      emit(ProductActionSuccess(
-        message: 'Listing marked as sold.',
-        myProducts: myProducts,
-        publicProducts: publicProducts,
-      ));
-    } catch (e) {
-      emit(ProductError(
-        message: repository.extractMessage(e),
-        myProducts: state.myProducts,
-        publicProducts: state.publicProducts,
-      ));
-    }
-  }
-
-  Future<void> _onMarkAsAvailable(MarkProductAsAvailableRequested event,
-      Emitter<ProductState> emit,) async {
-    emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
-    ));
-
-    try {
-      await repository.markProductAsAvailable(event.productId);
-
-      final myProducts = await repository.getSellerProducts();
-      final publicProducts = await repository.getPublicListings();
-
-      emit(ProductActionSuccess(
-        message: 'Listing marked as available.',
-        myProducts: myProducts,
-        publicProducts: publicProducts,
-      ));
-    } catch (e) {
-      emit(ProductError(
-        message: repository.extractMessage(e),
-        myProducts: state.myProducts,
-        publicProducts: state.publicProducts,
-      ));
-    }
-  }
-
-  Future<void> _onBuyProduct(BuyProductRequested event,
-      Emitter<ProductState> emit,) async {
-    emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
+      myProducts: List.from(state.myProducts),
+      publicProducts: List.from(state.publicProducts),
     ));
 
     try {
       await repository.buyProduct(event.productId);
-      final updatedProducts = state.publicProducts.map((product) {
-        if (product.id == event.productId) {
-          return product.copyWith(active: false);
+      try {
+        await repository.markProductAsSold(event.productId);
+      } catch (_) {}
+
+      final serverPublic = await repository.getPublicListings();
+      final serverMy = await repository.getSellerProducts();
+
+     final List<ProductDto> combinedPublicList = List.from(serverPublic);
+      
+      final bool existsInServer = combinedPublicList.any((p) => p.id == event.productId);
+      
+      if (!existsInServer) {
+        try {
+          final boughtProduct = previousPublicList.firstWhere((p) => p.id == event.productId);
+          combinedPublicList.add(boughtProduct.copyWith(active: false));
+        } catch (_) {
+
         }
-        return product;
-      }).toList();
-      final publicProducts = updatedProducts;
+      } else {
+        for (int i = 0; i < combinedPublicList.length; i++) {
+          if (combinedPublicList[i].id == event.productId) {
+            combinedPublicList[i] = combinedPublicList[i].copyWith(active: false);
+          }
+        }
+      }
+
       emit(ProductActionSuccess(
         message: 'Product bought successfully.',
-        myProducts: state.myProducts,
-        publicProducts: updatedProducts,
+        myProducts: serverMy,
+        publicProducts: combinedPublicList,
       ));
+
+      emit(ProductLoaded(
+        myProducts: serverMy,
+        publicProducts: combinedPublicList,
+      ));
+      
     } catch (e) {
       emit(ProductError(
         message: repository.extractMessage(e),
         myProducts: state.myProducts,
         publicProducts: state.publicProducts,
       ));
+    }
+  }
+
+
+  Future<void> _onCreateProduct(CreateProductRequested event, Emitter<ProductState> emit) async {
+    emit(ProductLoading(myProducts: List.from(state.myProducts), publicProducts: List.from(state.publicProducts)));
+    try {
+      final imageUrls = await repository.uploadImages(event.imageFiles);
+      await repository.createProduct(title: event.title, description: event.description, price: event.price, category: event.category, condition: event.condition, imageUrls: imageUrls);
+      final myProducts = await repository.getSellerProducts();
+      final publicProducts = await repository.getPublicListings();
+      emit(ProductActionSuccess(message: 'Listing created successfully.', myProducts: myProducts, publicProducts: publicProducts));
+      emit(ProductLoaded(myProducts: myProducts, publicProducts: publicProducts));
+    } catch (e) {
+      emit(ProductError(message: repository.extractMessage(e), myProducts: state.myProducts, publicProducts: state.publicProducts));
+    }
+  }
+
+  Future<void> _onUpdateProduct(UpdateProductRequested event, Emitter<ProductState> emit) async {
+    emit(ProductLoading(myProducts: List.from(state.myProducts), publicProducts: List.from(state.publicProducts)));
+    try {
+      List<String>? newImageUrls;
+      if (event.newImageFiles.isNotEmpty) {
+        newImageUrls = await repository.uploadImages(event.newImageFiles);
+      }
+      await repository.updateProduct(productId: event.productId, title: event.title, description: event.description, price: event.price, category: event.category, condition: event.condition, newImageUrls: newImageUrls, removedImageIds: event.removedImageIds.isNotEmpty ? event.removedImageIds : null);
+      final myProducts = await repository.getSellerProducts();
+      final publicProducts = await repository.getPublicListings();
+      emit(ProductActionSuccess(message: 'Listing updated successfully.', myProducts: myProducts, publicProducts: publicProducts));
+      emit(ProductLoaded(myProducts: myProducts, publicProducts: publicProducts));
+    } catch (e) {
+      emit(ProductError(message: repository.extractMessage(e), myProducts: state.myProducts, publicProducts: state.publicProducts));
+    }
+  }
+
+  Future<void> _onDeleteProduct(DeleteProductRequested event, Emitter<ProductState> emit) async {
+    emit(ProductLoading(myProducts: List.from(state.myProducts), publicProducts: List.from(state.publicProducts)));
+    try {
+      await repository.deleteProduct(event.productId);
+      final myProducts = await repository.getSellerProducts();
+      final publicProducts = await repository.getPublicListings();
+      emit(ProductActionSuccess(message: 'Listing removed successfully.', myProducts: myProducts, publicProducts: publicProducts));
+      emit(ProductLoaded(myProducts: myProducts, publicProducts: publicProducts));
+    } catch (e) {
+      emit(ProductError(message: repository.extractMessage(e), myProducts: state.myProducts, publicProducts: state.publicProducts));
+    }
+  }
+
+  Future<void> _onMarkAsSold(MarkProductAsSoldRequested event, Emitter<ProductState> emit) async {
+    emit(ProductLoading(myProducts: List.from(state.myProducts), publicProducts: List.from(state.publicProducts)));
+    try {
+      await repository.markProductAsSold(event.productId);
+      final myProducts = await repository.getSellerProducts();
+      final publicProducts = await repository.getPublicListings();
+      emit(ProductActionSuccess(message: 'Listing marked as sold.', myProducts: myProducts, publicProducts: publicProducts));
+      emit(ProductLoaded(myProducts: myProducts, publicProducts: publicProducts));
+    } catch (e) {
+      emit(ProductError(message: repository.extractMessage(e), myProducts: state.myProducts, publicProducts: state.publicProducts));
+    }
+  }
+
+  Future<void> _onMarkAsAvailable(MarkProductAsAvailableRequested event, Emitter<ProductState> emit) async {
+    emit(ProductLoading(myProducts: List.from(state.myProducts), publicProducts: List.from(state.publicProducts)));
+    try {
+      await repository.markProductAsAvailable(event.productId);
+      final myProducts = await repository.getSellerProducts();
+      final publicProducts = await repository.getPublicListings();
+      emit(ProductActionSuccess(message: 'Listing marked as available.', myProducts: myProducts, publicProducts: publicProducts));
+      emit(ProductLoaded(myProducts: myProducts, publicProducts: publicProducts));
+    } catch (e) {
+      emit(ProductError(message: repository.extractMessage(e), myProducts: state.myProducts, publicProducts: state.publicProducts));
     }
   }
 }

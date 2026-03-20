@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
 import '../models/product_dto.dart';
+import '../models/chat_message.dart';
 
 class ProductRepository {
   final ProductsApiClient apiClient;
@@ -81,6 +82,28 @@ class ProductRepository {
 
   Future<void> buyProduct(String productId) async {
     return apiClient.buyProduct(productId);
+  }
+
+  // --- CHATS ---
+
+  Future<List<ChatMessage>> getConversations() async {
+    final data = await apiClient.getConversations();
+    return data.map((json) {
+      return ChatMessage(
+        productId: (json['product_id'] ?? json['listing_id'] ?? '').toString(),
+        sellerName: (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown').toString(),
+        lastMessage: (json['last_message'] ?? '').toString(),
+      );
+    }).toList();
+  }
+
+  Future<List<String>> getMessages(String productId) async {
+    final data = await apiClient.getMessages(productId);
+    return data.map((json) => (json['content'] ?? '').toString()).toList();
+  }
+
+  Future<void> sendMessage(String productId, String content) async {
+    return apiClient.sendMessage(productId, content);
   }
 
   String extractMessage(Object error) {

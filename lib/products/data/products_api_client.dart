@@ -164,6 +164,32 @@ class ProductsApiClient {
     throw Exception('Invalid mark as available response format.');
   }
 
+  // --- CHATS ---
+
+  Future<List<Map<String, dynamic>>> getConversations() async {
+    final response = await dio.get('/chats');
+    final data = response.data;
+    if (data is List) {
+      return List<Map<String, dynamic>>.from(data);
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getMessages(String productId) async {
+    final response = await dio.get('/chats/$productId/messages');
+    final data = response.data;
+    if (data is List) {
+      return List<Map<String, dynamic>>.from(data);
+    }
+    return [];
+  }
+
+  Future<void> sendMessage(String productId, String content) async {
+    await dio.post('/chats/$productId/messages', data: {
+      'content': content,
+    });
+  }
+
   // Cloudinary (lo de las fotos xd)
 
   // Request de la firma para el upload a cloudinary

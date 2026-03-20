@@ -86,18 +86,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
               builder: (context, state) {
                 final activeListings =
                     state.publicProducts.where((p) => p.active).toList();
-                final soldListings =
-                    state.publicProducts.where((p) => !p.active).toList();
 
                 final filteredActive = activeListings.where((p) {
-                  final q = _search.toLowerCase().trim();
-                  if (q.isEmpty) return true;
-                  return p.title.toLowerCase().contains(q) ||
-                      p.description.toLowerCase().contains(q) ||
-                      p.category.toLowerCase().contains(q);
-                }).toList();
-
-                final filteredSold = soldListings.where((p) {
                   final q = _search.toLowerCase().trim();
                   if (q.isEmpty) return true;
                   return p.title.toLowerCase().contains(q) ||
@@ -224,9 +214,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                         const SizedBox(height: 24),
                       ],
                       
-                      // --- SECCION  ACTIVOS ---
                       const Text(
-                        'ACTIVE',
+                        'AVAILABLE PRODUCTS',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
@@ -238,37 +227,11 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       if (filteredActive.isEmpty)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('No active products found.', style: TextStyle(color: Colors.grey)),
+                          child: Text('No products found matching your search.', style: TextStyle(color: Colors.grey)),
                         )
                       else
                         ...filteredActive.map(
                           (product) => PublicListingCard(product: product),
-                        ),
-
-                      const SizedBox(height: 32),
-
-                      // --- SECCIÓN DE VENDIDOS ---
-                      const Text(
-                        'SOLD',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: Colors.redAccent,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (filteredSold.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('No sold products found.', style: TextStyle(color: Colors.grey)),
-                        )
-                      else
-                        ...filteredSold.map(
-                          (product) => Opacity(
-                            opacity: 0.6,
-                            child: PublicListingCard(product: product),
-                          ),
                         ),
                     ],
                   ),
