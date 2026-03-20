@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../analytics/bloc/analytics_bloc.dart';
 import 'bloc/product_bloc.dart';
 import 'data/products_api_client.dart';
 import 'repository/product_repository.dart';
@@ -24,7 +25,10 @@ class ProductsProviders extends StatelessWidget {
     return RepositoryProvider<ProductRepository>.value(
       value: repository,
       child: BlocProvider<ProductBloc>(
-        create: (_) => ProductBloc(repository: repository),
+        create: (context) => ProductBloc(
+          context.read<AnalyticsBloc>(),
+          repository: repository,
+        ),
         child: child,
       ),
     );

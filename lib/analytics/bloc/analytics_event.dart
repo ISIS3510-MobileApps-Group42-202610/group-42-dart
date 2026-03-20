@@ -26,3 +26,22 @@ class TrackScreenNavigation extends AnalyticsEvent {
   @override
   List<Object?> get props => [durationMs];
 }
+
+class TrackBusinessEvent extends AnalyticsEvent {
+  final String eventName;
+  final String listingId;
+  final int? buyerUserId;
+  final int? sellerUserId;
+  final Map<String, dynamic>? metadata;
+
+  const TrackBusinessEvent({
+    required this.eventName,
+    required this.listingId,
+    this.buyerUserId,
+    this.sellerUserId,
+    this.metadata,
+  });
+
+  @override
+  List<Object?> get props => [eventName, listingId, buyerUserId, sellerUserId, metadata];
+}

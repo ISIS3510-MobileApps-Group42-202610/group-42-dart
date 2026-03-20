@@ -20,6 +20,16 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   }) : super(const AnalyticsIdle()) {
     on<TrackAppStartup>(onTrackAppStartup);
     on<TrackScreenNavigation>(onTrackScreenNavigation);
+    on<TrackBusinessEvent>((event, emit) async {
+      try {
+        await repository.sendBusinessEvent(
+          eventName: event.eventName,
+          listingId: event.listingId,
+          metadata: event.metadata,
+        );
+      } catch (e) {
+      }
+    });
   }
 
   // escenario donde se hace el trackeo en startup para el bq1

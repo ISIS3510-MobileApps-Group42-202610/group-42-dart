@@ -1,4 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../analytics/bloc/analytics_bloc.dart';
+import '../../analytics/bloc/analytics_event.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 import 'product_event.dart';
 import 'product_state.dart';
 import '../repository/product_repository.dart';
@@ -6,8 +10,9 @@ import '../models/product_dto.dart';
 
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final ProductRepository repository;
+  final AnalyticsBloc analyticsBloc;
 
-  ProductBloc({required this.repository}) : super(const ProductInitial()) {
+  ProductBloc(this.analyticsBloc, {required this.repository}) : super(const ProductInitial()) {
     on<LoadPublicListings>(_onLoadPublicListings);
     on<BuyProductRequested>(_onBuyProduct);
     on<LoadSellerProducts>(_onLoadSellerProducts);
@@ -78,7 +83,23 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     ));
 
     try {
+      final product = state.publicProducts.cast<ProductDto?>().firstWhere(
+        (p) => p?.id == event.productId,
+        orElse: () => null,
+      );
+
       await repository.buyProduct(event.productId);
+
+      print("Send transaction_completed for ${event.productId}");
+      analyticsBloc.add(TrackBusinessEvent(
+        eventName: 'transaction_completed',
+        listingId: event.productId,
+        metadata: {
+          "price": product?.price ?? 0,
+          "category": product?.category ?? "unknown",
+        },
+      ));
+
       try {
         await repository.markProductAsSold(event.productId);
       } catch (_) {}
@@ -86,17 +107,14 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       final serverPublic = await repository.getPublicListings();
       final serverMy = await repository.getSellerProducts();
 
-     final List<ProductDto> combinedPublicList = List.from(serverPublic);
-      
+      final List<ProductDto> combinedPublicList = List.from(serverPublic);
       final bool existsInServer = combinedPublicList.any((p) => p.id == event.productId);
       
       if (!existsInServer) {
         try {
           final boughtProduct = previousPublicList.firstWhere((p) => p.id == event.productId);
           combinedPublicList.add(boughtProduct.copyWith(active: false));
-        } catch (_) {
-
-        }
+        } catch (_) {}
       } else {
         for (int i = 0; i < combinedPublicList.length; i++) {
           if (combinedPublicList[i].id == event.productId) {
@@ -124,7 +142,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       ));
     }
   }
-
 
   Future<void> _onCreateProduct(CreateProductRequested event, Emitter<ProductState> emit) async {
     emit(ProductLoading(myProducts: List.from(state.myProducts), publicProducts: List.from(state.publicProducts)));

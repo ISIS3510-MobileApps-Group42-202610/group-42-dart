@@ -36,6 +36,33 @@ class ProductDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (product.category.toLowerCase() == "textbook")
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  "Suggested meeting place: Library",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+
+            if (product.category.toLowerCase() == "electronics")
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  "Suggested meeting place: Engineering Lab",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
 
             // titulo
             Text(

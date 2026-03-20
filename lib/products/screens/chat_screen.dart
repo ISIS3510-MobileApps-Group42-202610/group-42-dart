@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../theme/app_theme.dart';
 import '../services/chat_service.dart';
 import '../models/chat_message.dart';
+import '../../analytics/analytics.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 
 class ChatScreen extends StatefulWidget {
   final String productId;
@@ -22,11 +26,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
 
   List<String> _conversationMessages = [];
+  bool _firstMessageSent = false;
 
   @override
   void initState() {
     super.initState();
-    // cargar mensajes previos
     final existingChat = ChatService.getChats().cast<ChatMessage?>().firstWhere(
           (c) => c?.productId == widget.productId,
           orElse: () => null,
@@ -41,6 +45,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
+
+    final authState = context.read<AuthBloc>().state;
+    int? currentUserId;
+    if (authState is AuthAuthenticated) {
+      currentUserId = authState.user.id;
+    }
+
     setState(() {
       _conversationMessages.add(text);
     });
@@ -52,6 +63,19 @@ class _ChatScreenState extends State<ChatScreen> {
         lastMessage: text,
       ),
     );
+
+    // TRACKING BQ9
+    if (!_firstMessageSent) {
+      context.read<AnalyticsBloc>().add(
+        TrackBusinessEvent(
+          eventName: 'first_message_sent',
+          listingId: widget.productId,
+          buyerUserId: currentUserId,
+          metadata: {"source": "chat_screen"},
+        ),
+      );
+      _firstMessageSent = true;
+    }
 
     _controller.clear();
     
