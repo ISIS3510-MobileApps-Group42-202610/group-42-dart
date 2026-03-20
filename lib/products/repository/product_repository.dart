@@ -61,6 +61,14 @@ class ProductRepository {
     return apiClient.markAsAvailable(productId);
   }
 
+  Future<void> buyProduct(String productId){
+    return apiClient.buyProduct(productId);
+  }
+
+ // Future<List<ProductDto>> searchPublicListings(String query) async {
+ //   return apiClient.searchPublicListings(query);
+ // }
+
   String extractMessage(Object error) {
     if (error is DioException) {
       final response = error.response;

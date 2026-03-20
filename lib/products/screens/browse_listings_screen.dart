@@ -7,6 +7,7 @@ import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
 import '../widgets/public_listing_card.dart';
 
+
 class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
 

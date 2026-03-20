@@ -11,6 +11,18 @@ class LoadPublicListings extends ProductEvent {
   const LoadPublicListings();
 }
 
+// Crea evento de busqueda
+//class SearchPublicListings extends ProductEvent {
+//  final String query;
+//  const SearchPublicListings({required this.query});
+//}
+
+class BuyProductRequested extends ProductEvent {
+  final String productId;
+
+  const BuyProductRequested(this.productId);
+}
+
 class LoadSellerProducts extends ProductEvent {
   const LoadSellerProducts();
 }

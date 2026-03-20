@@ -8,6 +8,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   ProductBloc({required this.repository}) : super(const ProductInitial()) {
     on<LoadPublicListings>(_onLoadPublicListings);
+    //   on<SearchPublicListings>(_onSearchPublicListings);
+    on<BuyProductRequested>(_onBuyProduct);
     on<LoadSellerProducts>(_onLoadSellerProducts);
     on<CreateProductRequested>(_onCreateProduct);
     on<UpdateProductRequested>(_onUpdateProduct);
@@ -16,10 +18,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<MarkProductAsAvailableRequested>(_onMarkAsAvailable);
   }
 
-  Future<void> _onLoadPublicListings(
-      LoadPublicListings event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onLoadPublicListings(LoadPublicListings event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -41,10 +41,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onLoadSellerProducts(
-      LoadSellerProducts event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onLoadSellerProducts(LoadSellerProducts event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -66,10 +64,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onCreateProduct(
-      CreateProductRequested event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onCreateProduct(CreateProductRequested event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -101,10 +97,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onUpdateProduct(
-      UpdateProductRequested event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onUpdateProduct(UpdateProductRequested event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -137,10 +131,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onDeleteProduct(
-      DeleteProductRequested event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onDeleteProduct(DeleteProductRequested event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -166,10 +158,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onMarkAsSold(
-      MarkProductAsSoldRequested event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onMarkAsSold(MarkProductAsSoldRequested event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -195,10 +185,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     }
   }
 
-  Future<void> _onMarkAsAvailable(
-      MarkProductAsAvailableRequested event,
-      Emitter<ProductState> emit,
-      ) async {
+  Future<void> _onMarkAsAvailable(MarkProductAsAvailableRequested event,
+      Emitter<ProductState> emit,) async {
     emit(ProductLoading(
       myProducts: state.myProducts,
       publicProducts: state.publicProducts,
@@ -222,5 +210,55 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         publicProducts: state.publicProducts,
       ));
     }
+  }
+
+  Future<void> _onBuyProduct(BuyProductRequested event,
+      Emitter<ProductState> emit,) async {
+    emit(ProductLoading(
+      myProducts: state.myProducts,
+      publicProducts: state.publicProducts,
+    ));
+
+    try {
+      await repository.buyProduct(event.productId);
+      final publicProducts = await repository.getPublicListings();
+      emit(ProductActionSuccess(
+        message: 'Product bought successfully.',
+        myProducts: state.myProducts,
+        publicProducts: publicProducts,
+      ));
+    } catch (e) {
+      emit(ProductError(
+        message: repository.extractMessage(e),
+        myProducts: state.myProducts,
+        publicProducts: state.publicProducts,
+      ));
+    }
+/*
+  Future<void> _onSearchPublicListings(
+      SearchPublicListings event,
+      Emitter<ProductState> emit,
+      ) async {
+    emit(ProductLoading(
+      myProducts: state.myProducts,
+      publicProducts: state.publicProducts,
+    ));
+
+    try {
+      final publicProducts = await repository.searchPublicListings(event.query);
+
+      emit(ProductLoaded(
+        myProducts: state.myProducts,
+        publicProducts: publicProducts,
+      ));
+    } catch (e) {
+      emit(ProductError(
+        message: repository.extractMessage(e),
+        myProducts: state.myProducts,
+        publicProducts: state.publicProducts,
+      ));
+    }
+  }
+*/
   }
 }

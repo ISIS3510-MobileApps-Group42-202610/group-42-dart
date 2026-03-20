@@ -25,6 +25,16 @@ class ProductsApiClient {
     throw Exception('Invalid public listings response format.');
   }
 
+  Future<void> buyProduct(String productId) async {
+    // Intentamos convertir a int para evitar el error "numeric string is expected"
+    final dynamic numericId = int.tryParse(productId) ?? productId;
+
+    await dio.post('/transactions', data: {
+      'listing_id': numericId, 
+    });
+  }
+
+
   Future<List<ProductDto>> getMyProducts() async {
     final response = await dio.get('/listings/my');
     final data = response.data;
