@@ -159,24 +159,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
 
-  // Extract error for debugging
+  // Extraer errores
   String extractMessage(Object error) {
     if (error is DioException) {
       final response = error.response;
       if (response != null) {
         final data = response.data;
 
-        // NestJS typically returns a Map with a "message" key.
         if (data is Map<String, dynamic>) {
           final msg = data['message'];
           if (msg is List) return msg.join('\n');
           if (msg is String) return msg;
         }
 
-        // If data came back as a raw String (e.g. plain text error).
         if (data is String && data.isNotEmpty) return data;
 
-        // Fallback to status-code hints.
+        // Fallback a codigos de estado
         switch (response.statusCode) {
           case 400:
             return 'Invalid request. Please check your input.';
@@ -189,7 +187,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       }
 
-      // No response at all — network issue.
+      // Problemas de internet
       return 'Connection error. Check your internet and try again.';
     }
     return 'An unexpected error occurred.';

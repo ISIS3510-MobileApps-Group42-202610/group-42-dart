@@ -49,6 +49,7 @@ class LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
+            // Display el error como un snackbar
             if (state is AuthError) {
               ScaffoldMessenger.of(
                 context,
