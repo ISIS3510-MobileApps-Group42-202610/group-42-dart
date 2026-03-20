@@ -70,6 +70,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
                   .difference(navStartTime!)
                   .inMilliseconds
                   .toDouble();
+              // pasar el evento al bloc analitico
               context.read<AnalyticsBloc>().add(
                     TrackScreenNavigation(durationMs: durationMs),
                   );

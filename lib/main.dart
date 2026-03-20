@@ -20,10 +20,18 @@ void main() {
   );
 }
 
-class UniMarketApp extends StatelessWidget {
+class UniMarketApp extends StatefulWidget {
   final DateTime appStartTime;
 
   const UniMarketApp({super.key, required this.appStartTime});
+
+  @override
+  State<UniMarketApp> createState() => UniMarketAppState();
+}
+
+class UniMarketAppState extends State<UniMarketApp> {
+  // Cambio para que el tracking solo ocurra si el usuario esta autenticado de antess
+  bool allowStartupTracking = true;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +51,12 @@ class UniMarketApp extends StatelessWidget {
       ),
 
       // Cambio de estados con el bloc
-      home: BlocBuilder<AuthBloc, AuthState>(
+      home: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthUnauthenticated && allowStartupTracking) {
+            setState(() => allowStartupTracking = false);
+          }
+        },
         builder: (context, state) {
 
           // Caregando
@@ -65,10 +78,14 @@ class UniMarketApp extends StatelessWidget {
 
           // Autenticado, lleva al home
           if (state is AuthAuthenticated) {
-            return StartupTracker(
-              appStartTime: appStartTime,
-              child: const HomeScreen(),
-            );
+            // si etsaba autenticado pre-startup, hacer el startup tracker
+            if (allowStartupTracking) {
+              return StartupTracker(
+                appStartTime: widget.appStartTime,
+                child: const HomeScreen(),
+              );
+            }
+            return const HomeScreen();
           }
 
           // No autenticado, lleva al login
@@ -107,6 +124,7 @@ class StartupTrackerState extends State<StartupTracker> {
     if (!tracked) {
       tracked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // sacar el bloc analitico para enviar el evento de startup
         final bloc = context.read<AnalyticsBloc>();
         // Inicializar device info antes de enviar el evento
         await bloc.deviceInfo.init();
