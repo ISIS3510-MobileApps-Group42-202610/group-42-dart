@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:equatable/equatable.dart';
 
 abstract class ProductEvent extends Equatable {
@@ -33,6 +35,7 @@ class CreateProductRequested extends ProductEvent {
   final double price;
   final String category;
   final String condition;
+  final List<File> imageFiles;
 
   const CreateProductRequested({
     required this.title,
@@ -40,10 +43,11 @@ class CreateProductRequested extends ProductEvent {
     required this.price,
     required this.category,
     required this.condition,
+    required this.imageFiles,
   });
 
   @override
-  List<Object?> get props => [title, description, price, category, condition];
+  List<Object?> get props => [title, description, price, category, condition, imageFiles];
 }
 
 class UpdateProductRequested extends ProductEvent {
@@ -53,6 +57,8 @@ class UpdateProductRequested extends ProductEvent {
   final double price;
   final String category;
   final String condition;
+  final List<File> newImageFiles;
+  final List<int> removedImageIds;
 
   const UpdateProductRequested({
     required this.productId,
@@ -61,6 +67,8 @@ class UpdateProductRequested extends ProductEvent {
     required this.price,
     required this.category,
     required this.condition,
+    this.newImageFiles = const [],
+    this.removedImageIds = const [],
   });
 
   @override
@@ -71,6 +79,8 @@ class UpdateProductRequested extends ProductEvent {
     price,
     category,
     condition,
+    newImageFiles,
+    removedImageIds,
   ];
 }
 

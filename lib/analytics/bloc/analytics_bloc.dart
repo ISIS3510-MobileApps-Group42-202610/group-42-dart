@@ -1,21 +1,22 @@
 // el bloc del analytics, muy similar al de auth
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../repositories/analytics_repository.dart';
+import '../models/analytics_models.dart';
 import 'analytics_event.dart';
 import 'analytics_state.dart';
-import '../data/analytics_api_client.dart';
 import '../data/device_info_service.dart';
 
 class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
-  final AnalyticsApiClient apiClient;
+  final AnalyticsRepository repository;
   final DeviceInfoService deviceInfo;
   final String appVersion;
 
   // igual que en el auth, declarar todos los escenarios
   AnalyticsBloc({
-    required this.apiClient,
+    required this.repository,
     required this.deviceInfo,
-    this.appVersion = '1.0.0',
+    this.appVersion = '1.0.0', // esto cambiara en el futuro xd
   }) : super(const AnalyticsIdle()) {
     on<TrackAppStartup>(onTrackAppStartup);
     on<TrackScreenNavigation>(onTrackScreenNavigation);
@@ -27,16 +28,19 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
     Emitter<AnalyticsState> emit,
   ) async {
     try {
-      await apiClient.postPerformanceEvent(
-        eventType: 'app_startup',
-        deviceModel: deviceInfo.deviceModel,
-        platform: deviceInfo.platform,
-        durationMs: event.durationMs,
-        osVersion: deviceInfo.osVersion,
-        appVersion: appVersion,
+      await repository.postPerformanceEvent(
+        PerformanceRequest(
+          eventType: 'app_startup',
+          deviceModel: deviceInfo.deviceModel,
+          platform: deviceInfo.platform,
+          durationMs: event.durationMs,
+          osVersion: deviceInfo.osVersion,
+          appVersion: appVersion,
+        ),
       );
-    } catch (_) {
-      // nunca debe crashear la app
+      emit(const AnalyticsIdle()); // por si acaso
+    } catch (e) {
+      emit(AnalyticsError(message: e.toString()));
     }
   }
 
@@ -46,16 +50,19 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
     Emitter<AnalyticsState> emit,
   ) async {
     try {
-      await apiClient.postPerformanceEvent(
-        eventType: 'screen_navigation',
-        deviceModel: deviceInfo.deviceModel,
-        platform: deviceInfo.platform,
-        durationMs: event.durationMs,
-        osVersion: deviceInfo.osVersion,
-        appVersion: appVersion,
+      await repository.postPerformanceEvent(
+        PerformanceRequest(
+          eventType: 'screen_navigation',
+          deviceModel: deviceInfo.deviceModel,
+          platform: deviceInfo.platform,
+          durationMs: event.durationMs,
+          osVersion: deviceInfo.osVersion,
+          appVersion: appVersion,
+        ),
       );
-    } catch (_) {
-      // nunca debe crashear la app
+      emit(const AnalyticsIdle()); // por si acaso
+    } catch (e) {
+      emit(AnalyticsError(message: e.toString()));
     }
   }
 }

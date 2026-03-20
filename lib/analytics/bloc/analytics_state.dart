@@ -12,3 +12,12 @@ abstract class AnalyticsState extends Equatable {
 class AnalyticsIdle extends AnalyticsState {
   const AnalyticsIdle();
 }
+
+class AnalyticsError extends AnalyticsState {
+  final String message;
+
+  const AnalyticsError({required this.message});
+
+  @override
+  List<Object> get props => [message];
+}

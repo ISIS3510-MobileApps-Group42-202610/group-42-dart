@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
+import '../services/smart_recommendation_service.dart';
 import '../widgets/public_listing_card.dart';
 
 
@@ -17,7 +18,11 @@ class BrowseListingsScreen extends StatefulWidget {
 
 class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final SmartRecommendationService _smartService =
+  const SmartRecommendationService();
+
   String _search = '';
+  final List<String> _searchHistory = [];
 
   @override
   void initState() {
@@ -35,6 +40,30 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
 
   Future<void> _refresh() async {
     context.read<ProductBloc>().add(const LoadPublicListings());
+  }
+
+  void _saveSearch(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+
+    setState(() {
+      _searchHistory.removeWhere(
+            (item) => item.toLowerCase() == trimmed.toLowerCase(),
+      );
+      _searchHistory.insert(0, trimmed);
+
+      if (_searchHistory.length > 10) {
+        _searchHistory.removeLast();
+      }
+    });
+  }
+
+  void _applySuggestion(String suggestion) {
+    _searchController.text = suggestion;
+    setState(() {
+      _search = suggestion;
+    });
+    _saveSearch(suggestion);
   }
 
   @override
@@ -59,14 +88,19 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                 final allListings =
                 state.publicProducts.where((p) => p.active).toList();
 
-                final filteredListings = allListings.where((product) {
-                  final q = _search.toLowerCase().trim();
-                  if (q.isEmpty) return true;
+                final rankedListings = _smartService.rankListings(
+                  listings: allListings,
+                  query: _search,
+                  searchHistory: _searchHistory,
+                );
 
-                  return product.title.toLowerCase().contains(q) ||
-                      product.description.toLowerCase().contains(q) ||
-                      product.category.toLowerCase().contains(q);
-                }).toList();
+                final recommendedListings = _smartService.getRecommendedListings(
+                  listings: allListings,
+                  searchHistory: _searchHistory,
+                );
+
+                final suggestions =
+                _smartService.buildSuggestions(_searchHistory);
 
                 if ((state is ProductInitial || state is ProductLoading) &&
                     allListings.isEmpty) {
@@ -81,7 +115,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       Text(
-                        'Find products',
+                        'Smart search',
                         style:
                         Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -90,7 +124,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Browse active listings posted by sellers.',
+                        'Search listings and get recommendations based on your recent queries.',
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 20),
@@ -101,24 +135,103 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                             _search = value;
                           });
                         },
+                        onSubmitted: (value) {
+                          _saveSearch(value);
+                        },
                         decoration: InputDecoration(
                           hintText: 'Search by title, description or category',
                           prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _search.isEmpty
+                              ? null
+                              : IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _search = '';
+                              });
+                            },
+                            icon: const Icon(Icons.clear),
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      if (suggestions.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Suggested searches',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.labelDark,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: suggestions
+                              .map(
+                                (suggestion) => ActionChip(
+                              label: Text(suggestion),
+                              onPressed: () => _applySuggestion(suggestion),
+                            ),
+                          )
+                              .toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      if (_search.trim().isEmpty) ...[
+                        const Text(
+                          'Recommended for you',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            color: AppColors.labelDark,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'These listings are ranked using your recent searches.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 12),
+                        if (recommendedListings.isEmpty)
+                          const Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(18),
+                              child: Text(
+                                'No recommendations available yet.',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        else
+                          ...recommendedListings.map(
+                                (product) => PublicListingCard(product: product),
+                          ),
+                        const SizedBox(height: 24),
+                      ],
                       Text(
-                        '${filteredListings.length} result(s)',
+                        _search.trim().isEmpty
+                            ? 'All active listings'
+                            : 'Search results',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          color: AppColors.labelDark,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${rankedListings.length} result(s)',
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Colors.grey,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      if (filteredListings.isEmpty)
+                      if (rankedListings.isEmpty)
                         const Card(
                           child: Padding(
                             padding: EdgeInsets.all(18),
@@ -129,7 +242,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           ),
                         )
                       else
-                        ...filteredListings.map(
+                        ...rankedListings.map(
                               (product) => PublicListingCard(product: product),
                         ),
                     ],

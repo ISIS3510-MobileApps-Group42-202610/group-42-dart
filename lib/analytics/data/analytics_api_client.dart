@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../models/analytics_models.dart';
 
 class AnalyticsApiClient {
   final Dio dio;
@@ -6,24 +7,8 @@ class AnalyticsApiClient {
   AnalyticsApiClient({required this.dio});
 
   // post a la db analytics un evento de performance, bq1 c:
-  Future<void> postPerformanceEvent({
-    required String eventType,
-    required String deviceModel,
-    required String platform,
-    required double durationMs,
-    String osVersion = '',
-    String appVersion = '',
-  }) async {
-    await dio.post( // hacer el post a la db analytica a traves de django
-      '/api/performance',
-      data: {
-        'event_type': eventType,
-        'device_model': deviceModel,
-        'platform': platform,
-        'duration_ms': durationMs,
-        'os_version': osVersion,
-        'app_version': appVersion,
-      },
-    );
+  Future<PerformanceResponse> postPerformanceEvent( PerformanceRequest request ) async {
+    final response = await dio.post('/api/performance', data: request.toJson());
+    return PerformanceResponse.fromJson(response.data as Map<String, dynamic>);
   }
 }
