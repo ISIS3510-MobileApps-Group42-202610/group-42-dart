@@ -69,6 +69,16 @@ class ProductRepository {
     return apiClient.markAsAvailable(productId);
   }
 
+  // subir las fotos a cloudinary, obtener el url de cada foto
+  Future<List<String>> uploadImages(List<File> imageFiles) async {
+    final urls = <String>[];
+    for (final file in imageFiles) {
+      final url = await apiClient.uploadImageToCloudinary(file);
+      urls.add(url);
+    }
+    return urls;
+  }
+
   String extractMessage(Object error) {
     if (error is DioException) {
       final response = error.response;
