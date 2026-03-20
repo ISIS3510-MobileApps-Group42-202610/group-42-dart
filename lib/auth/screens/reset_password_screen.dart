@@ -82,12 +82,16 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
     );
   }
 
-  void _revealResetFields() {
+  // Mostrar los campos solo cuando ya se envio el correo
+  // pasar el fadeSlide de 0 a 1 en size y opacity y que se vea bonito
+  void revealResetFields() {
     setState(() => tokenSent = true);
     animationController.forward(from: 0);
   }
 
-  void _hideResetFields() {
+  // ocultar los campos de lo contrario
+  // pasar el fadeSlide de 1 a 0 en size y opacity
+  void hideResetFields() {
     animationController.reverse().then((_) {
       setState(() => tokenSent = false);
     });
@@ -104,7 +108,7 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
           listener: (context, state) {
             if (state is AuthActionSuccess) {
               if (state.action == AuthAction.forgotPassword) {
-                _revealResetFields();
+                revealResetFields();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(state.message)),
                 );
@@ -139,6 +143,7 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                     const SizedBox(height: 16),
 
                     // Banner principal de la page
+                    // Cambia de acuerdo a si ya se envio el token o no
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       child: tokenSent
@@ -182,6 +187,7 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                     ),
 
                     // Campos de reseteo de contraseña
+                    // Cambia con el fadeSlide
                     const SizedBox(height: 16),
                     SizeTransition(
                       sizeFactor: fadeSlide,
@@ -306,6 +312,8 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                           color: Colors.white,
                         ),
                       )
+                          // El boton cambia tambien con el tokenSent
+                          // Si no se ha enviado o si ya se envio
                           : AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
                         child: Text(
@@ -325,7 +333,7 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                     if (tokenSent)
                       Center(
                         child: TextButton(
-                          onPressed: _hideResetFields,
+                          onPressed: hideResetFields,
                           child: const Text(
                             "Didn't get a code? Go back",
                             style: TextStyle(
