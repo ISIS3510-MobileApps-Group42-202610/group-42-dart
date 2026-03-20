@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:isis3510_group42_flutter_app/products/screens/chats_screen.dart';
 
 import '../../auth/auth.dart';
 import '../../analytics/analytics.dart';
@@ -7,6 +8,7 @@ import '../../products/products_providers.dart';
 import '../../products/screens/browse_listings_screen.dart';
 import '../../products/screens/seller_products_screen.dart';
 import '../../theme/app_theme.dart';
+import '../../products/screens/chats_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,6 +46,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
 
     final pages = <Widget>[
       const BrowseListingsScreen(),
+      const ChatsScreen(),
       const SellerProductsScreen(),
       _ProfileTab(userName: user?.name ?? 'User'),
     ];
@@ -78,6 +81,11 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
             icon: Icon(Icons.search_outlined),
             selectedIcon: Icon(Icons.search),
             label: 'Search',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_outlined),
+            selectedIcon: Icon(Icons.chat),
+            label: 'Chats',
           ),
           NavigationDestination(
             icon: Icon(Icons.sell_outlined),

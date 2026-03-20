@@ -106,9 +106,10 @@ class ProductDetailScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: product.active ? () {
                   context.read<ProductBloc>().add(BuyProductRequested(product.id));
-                },
+                }
+                : null,
                 child: const Text("Buy"),
               ),
             ),
