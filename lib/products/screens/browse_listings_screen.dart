@@ -8,7 +8,6 @@ import '../bloc/product_state.dart';
 import '../services/smart_recommendation_service.dart';
 import '../widgets/public_listing_card.dart';
 
-
 class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
 
@@ -19,7 +18,7 @@ class BrowseListingsScreen extends StatefulWidget {
 class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final SmartRecommendationService _smartService =
-  const SmartRecommendationService();
+      const SmartRecommendationService();
 
   String _search = '';
   final List<String> _searchHistory = [];
@@ -48,7 +47,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
 
     setState(() {
       _searchHistory.removeWhere(
-            (item) => item.toLowerCase() == trimmed.toLowerCase(),
+        (item) => item.toLowerCase() == trimmed.toLowerCase(),
       );
       _searchHistory.insert(0, trimmed);
 
@@ -85,25 +84,37 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
             padding: const EdgeInsets.all(20),
             child: BlocBuilder<ProductBloc, ProductState>(
               builder: (context, state) {
-                final allListings =
-                state.publicProducts.where((p) => p.active).toList();
+                final activeListings =
+                    state.publicProducts.where((p) => p.active).toList();
+                final soldListings =
+                    state.publicProducts.where((p) => !p.active).toList();
 
-                final rankedListings = _smartService.rankListings(
-                  listings: allListings,
-                  query: _search,
-                  searchHistory: _searchHistory,
-                );
+                final filteredActive = activeListings.where((p) {
+                  final q = _search.toLowerCase().trim();
+                  if (q.isEmpty) return true;
+                  return p.title.toLowerCase().contains(q) ||
+                      p.description.toLowerCase().contains(q) ||
+                      p.category.toLowerCase().contains(q);
+                }).toList();
+
+                final filteredSold = soldListings.where((p) {
+                  final q = _search.toLowerCase().trim();
+                  if (q.isEmpty) return true;
+                  return p.title.toLowerCase().contains(q) ||
+                      p.description.toLowerCase().contains(q) ||
+                      p.category.toLowerCase().contains(q);
+                }).toList();
 
                 final recommendedListings = _smartService.getRecommendedListings(
-                  listings: allListings,
+                  listings: activeListings,
                   searchHistory: _searchHistory,
                 );
 
                 final suggestions =
-                _smartService.buildSuggestions(_searchHistory);
+                    _smartService.buildSuggestions(_searchHistory);
 
                 if ((state is ProductInitial || state is ProductLoading) &&
-                    allListings.isEmpty) {
+                    state.publicProducts.isEmpty) {
                   return const Center(
                     child: CircularProgressIndicator(),
                   );
@@ -117,10 +128,10 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       Text(
                         'Smart search',
                         style:
-                        Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.labelDark,
-                        ),
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.labelDark,
+                                ),
                       ),
                       const SizedBox(height: 6),
                       const Text(
@@ -144,14 +155,14 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           suffixIcon: _search.isEmpty
                               ? null
                               : IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _search = '';
-                              });
-                            },
-                            icon: const Icon(Icons.clear),
-                          ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _searchController.clear();
+                                      _search = '';
+                                    });
+                                  },
+                                  icon: const Icon(Icons.clear),
+                                ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -173,10 +184,10 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           children: suggestions
                               .map(
                                 (suggestion) => ActionChip(
-                              label: Text(suggestion),
-                              onPressed: () => _applySuggestion(suggestion),
-                            ),
-                          )
+                                  label: Text(suggestion),
+                                  onPressed: () => _applySuggestion(suggestion),
+                                ),
+                              )
                               .toList(),
                         ),
                       ],
@@ -208,42 +219,56 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           )
                         else
                           ...recommendedListings.map(
-                                (product) => PublicListingCard(product: product),
+                            (product) => PublicListingCard(product: product),
                           ),
                         const SizedBox(height: 24),
                       ],
-                      Text(
-                        _search.trim().isEmpty
-                            ? 'All active listings'
-                            : 'Search results',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: AppColors.labelDark,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${rankedListings.length} result(s)',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
+                      
+                      // --- SECCION  ACTIVOS ---
+                      const Text(
+                        'ACTIVE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppColors.primaryBlue,
+                          letterSpacing: 1.2,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      if (rankedListings.isEmpty)
-                        const Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(18),
-                            child: Text(
-                              'No listings match your search.',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ),
+                      if (filteredActive.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text('No active products found.', style: TextStyle(color: Colors.grey)),
                         )
                       else
-                        ...rankedListings.map(
-                              (product) => PublicListingCard(product: product),
+                        ...filteredActive.map(
+                          (product) => PublicListingCard(product: product),
+                        ),
+
+                      const SizedBox(height: 32),
+
+                      // --- SECCIÓN DE VENDIDOS ---
+                      const Text(
+                        'SOLD',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: Colors.redAccent,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (filteredSold.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text('No sold products found.', style: TextStyle(color: Colors.grey)),
+                        )
+                      else
+                        ...filteredSold.map(
+                          (product) => Opacity(
+                            opacity: 0.6,
+                            child: PublicListingCard(product: product),
+                          ),
                         ),
                     ],
                   ),

@@ -237,11 +237,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
     try {
       await repository.buyProduct(event.productId);
-      final publicProducts = await repository.getPublicListings();
+      final updatedProducts = state.publicProducts.map((product) {
+        if (product.id == event.productId) {
+          return product.copyWith(active: false);
+        }
+        return product;
+      }).toList();
+      final publicProducts = updatedProducts;
       emit(ProductActionSuccess(
         message: 'Product bought successfully.',
         myProducts: state.myProducts,
-        publicProducts: publicProducts,
+        publicProducts: updatedProducts,
       ));
     } catch (e) {
       emit(ProductError(
@@ -250,31 +256,5 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         publicProducts: state.publicProducts,
       ));
     }
-/*
-  Future<void> _onSearchPublicListings(
-      SearchPublicListings event,
-      Emitter<ProductState> emit,
-      ) async {
-    emit(ProductLoading(
-      myProducts: state.myProducts,
-      publicProducts: state.publicProducts,
-    ));
-
-    try {
-      final publicProducts = await repository.searchPublicListings(event.query);
-
-      emit(ProductLoaded(
-        myProducts: state.myProducts,
-        publicProducts: publicProducts,
-      ));
-    } catch (e) {
-      emit(ProductError(
-        message: repository.extractMessage(e),
-        myProducts: state.myProducts,
-        publicProducts: state.publicProducts,
-      ));
-    }
-  }
-*/
   }
 }

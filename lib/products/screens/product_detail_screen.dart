@@ -55,7 +55,18 @@ class ProductDetailScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
+            if (!product.active)
+              const Text(
+                "This product is sold",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             const SizedBox(height: 20),
+
+
 
             // descripcion
             Text(

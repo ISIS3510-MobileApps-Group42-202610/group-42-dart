@@ -30,7 +30,10 @@ class ProductsApiClient {
   }
 
   Future<void> buyProduct(String productId) async {
-    await dio.post('/products/$productId/buy');
+    final dynamic numericId = int.tryParse(productId) ?? productId;
+    await dio.post('/transactions', data: {
+      'listing_id': numericId, 
+    });
   }
 
 

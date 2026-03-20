@@ -80,7 +80,7 @@ class ProductRepository {
   }
 
   Future<void> buyProduct(String productId) async {
-    await apiClient.buyProduct(productId);
+    return apiClient.buyProduct(productId);
   }
 
   String extractMessage(Object error) {
