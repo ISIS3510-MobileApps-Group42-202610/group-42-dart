@@ -2,20 +2,97 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
+import '../data/listings_cache.dart';
+import '../services/connectivity_service.dart';
 import '../models/product_dto.dart';
 import '../models/chat_message.dart';
 
 class ProductRepository {
   final ProductsApiClient apiClient;
+  final ListingsCache listingsCache;
+  final ConnectivityService connectivityService;
 
-  ProductRepository({required this.apiClient});
+  ProductRepository({
+    required this.apiClient,
+    required this.listingsCache,
+    required this.connectivityService,
+  });
 
   Future<List<ProductDto>> getPublicListings() async {
-    return apiClient.getPublicListings();
+    // verificar si hay conexión antes de hacer la petición
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      final cachedListings = await listingsCache.getCachedPublicListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        throw CacheException(
+          'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      throw _offlineDioException('/listings');
+    }
+
+    try {
+      final listings = await apiClient.getPublicListings();
+      // cachear el resultado
+      await listingsCache.cachePublicListings(listings);
+      return listings;
+    } catch (e) {
+      if (isUnauthorizedError(e)) {
+        rethrow;
+      }
+
+      // Si hay error, obtener las listings cacheadaspara mostrar al usuario, indicando que es un error de conexión
+      final cachedListings = await listingsCache.getCachedPublicListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        // Error de cache
+        throw CacheException(
+          'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      // Si no hay cache, retornar el error original
+      rethrow;
+    }
   }
 
   Future<List<ProductDto>> getSellerProducts() async {
-    return apiClient.getMyProducts();
+    // verificar si hay conexión antes de hacer la petición
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      final cachedListings = await listingsCache.getCachedSellerListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        throw CacheException(
+          'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      throw _offlineDioException('/listings/my');
+    }
+
+    // implementacion de cache
+    try {
+      final listings = await apiClient.getMyProducts();
+      // meter en cache los listings
+      await listingsCache.cacheSellerListings(listings);
+      return listings;
+    } catch (e) {
+      // Si el error es de autenticación, rethrow para que el bloc maneje el logout
+      if (isUnauthorizedError(e)) {
+        rethrow;
+      }
+
+      // Si hay error (no hay conexión, mostrar al usuario)
+      final cachedListings = await listingsCache.getCachedSellerListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        throw CacheException(
+          'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      // Si no hay cache, rethrow el error original para mostrar mensaje de error
+      rethrow;
+    }
   }
 
   Future<ProductDto> createProduct({
@@ -91,7 +168,10 @@ class ProductRepository {
     return data.map((json) {
       return ChatMessage(
         productId: (json['product_id'] ?? json['listing_id'] ?? '').toString(),
-        sellerName: (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown').toString(),
+        // agregar el nombre del seller
+        sellerName:
+            (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown')
+                .toString(),
         lastMessage: (json['last_message'] ?? '').toString(),
       );
     }).toList();
@@ -142,4 +222,28 @@ class ProductRepository {
 
     return 'An unexpected error occurred.';
   }
+
+  // Verificar si el error es de autenticación
+  bool isUnauthorizedError(Object error) {
+    return error is DioException && error.response?.statusCode == 401;
+  }
+
+  DioException _offlineDioException(String path) {
+    return DioException(
+      requestOptions: RequestOptions(path: path),
+      type: DioExceptionType.connectionError,
+      error: 'No internet connection.',
+    );
+  }
+}
+
+// Excepción de conexión (se muestra en un snackbar)
+class CacheException implements Exception {
+  final String message;
+  final List<ProductDto> cachedListings;
+
+  CacheException(this.message, {required this.cachedListings});
+
+  @override
+  String toString() => message;
 }

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'auth/auth.dart';
 import 'analytics/analytics.dart';
 import 'home/screens/home_screen.dart';
 
-void main() {
+Future<void> main() async {
+  // startup time
   final appStartTime = DateTime.now();
+  // WidgetsFlutterBinding.ensureInitialized() es necesario para que Hive funcione
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
 
   runApp(
     AnalyticsProviders(
@@ -58,7 +63,6 @@ class UniMarketAppState extends State<UniMarketApp> {
           }
         },
         builder: (context, state) {
-
           // Caregando
           if (state is AuthInitial || state is AuthLoading) {
             return const Scaffold(
