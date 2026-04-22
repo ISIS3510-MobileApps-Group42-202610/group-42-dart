@@ -62,21 +62,31 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
         if (state is ProductActionSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
 
+        // nuevo snackbar para errores relacionados con productos, como fallas de red o validación
         if (state is ProductError) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
+        }
+
+        if (state is ProductOfflineFromCache) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.orange[700],
+              duration: const Duration(seconds: 4),
+            ),
           );
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My listings'),
-        ),
+        appBar: AppBar(title: const Text('My listings')),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _openCreateScreen,
           backgroundColor: AppColors.primaryBlue,
@@ -90,16 +100,16 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
             child: BlocBuilder<ProductBloc, ProductState>(
               builder: (context, state) {
                 final myProducts = state.myProducts;
-                final activeListings =
-                myProducts.where((product) => product.active).toList();
-                final soldListings =
-                myProducts.where((product) => !product.active).toList();
+                final activeListings = myProducts
+                    .where((product) => product.active)
+                    .toList();
+                final soldListings = myProducts
+                    .where((product) => !product.active)
+                    .toList();
 
                 if ((state is ProductInitial || state is ProductLoading) &&
                     myProducts.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 return RefreshIndicator(
@@ -109,11 +119,11 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                     children: [
                       Text(
                         'Seller dashboard',
-                        style:
-                        Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.labelDark,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.labelDark,
+                            ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -187,7 +197,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                         _SectionHeader(
                           title: 'Active listings',
                           subtitle:
-                          'Products currently visible to other users in search.',
+                              'Products currently visible to other users in search.',
                         ),
                         const SizedBox(height: 12),
                         if (activeListings.isEmpty)
@@ -196,7 +206,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                           )
                         else
                           ...activeListings.map(
-                                (product) => ProductCard(
+                            (product) => ProductCard(
                               product: product,
                               onEdit: () => _openEditScreen(product),
                               onToggleStatus: () {
@@ -208,9 +218,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                               },
                               onDelete: () {
                                 context.read<ProductBloc>().add(
-                                  DeleteProductRequested(
-                                    productId: product.id,
-                                  ),
+                                  DeleteProductRequested(productId: product.id),
                                 );
                               },
                             ),
@@ -221,16 +229,14 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                         _SectionHeader(
                           title: 'Sold listings',
                           subtitle:
-                          'Keep track of the latest status of your inventory.',
+                              'Keep track of the latest status of your inventory.',
                         ),
                         const SizedBox(height: 12),
                         if (soldListings.isEmpty)
-                          const _EmptySection(
-                            message: 'No sold listings yet.',
-                          )
+                          const _EmptySection(message: 'No sold listings yet.')
                         else
                           ...soldListings.map(
-                                (product) => ProductCard(
+                            (product) => ProductCard(
                               product: product,
                               onEdit: () => _openEditScreen(product),
                               onToggleStatus: () {
@@ -242,9 +248,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                               },
                               onDelete: () {
                                 context.read<ProductBloc>().add(
-                                  DeleteProductRequested(
-                                    productId: product.id,
-                                  ),
+                                  DeleteProductRequested(productId: product.id),
                                 );
                               },
                             ),
@@ -282,10 +286,7 @@ class _StatCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: AppColors.primaryBlue.withOpacity(0.12),
-              child: Icon(
-                icon,
-                color: AppColors.primaryBlue,
-              ),
+              child: Icon(icon, color: AppColors.primaryBlue),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -299,10 +300,7 @@ class _StatCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Text(
-                    label,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
+                  Text(label, style: const TextStyle(color: Colors.grey)),
                 ],
               ),
             ),
@@ -317,10 +315,7 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -329,15 +324,12 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(color: Colors.grey),
-        ),
+        Text(subtitle, style: const TextStyle(color: Colors.grey)),
       ],
     );
   }
@@ -353,10 +345,7 @@ class _EmptySection extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Text(
-          message,
-          style: const TextStyle(color: Colors.grey),
-        ),
+        child: Text(message, style: const TextStyle(color: Colors.grey)),
       ),
     );
   }

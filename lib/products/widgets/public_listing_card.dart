@@ -8,16 +8,14 @@ import '../screens/product_detail_screen.dart';
 class PublicListingCard extends StatelessWidget {
   final ProductDto product;
 
-  const PublicListingCard({
-    super.key,
-    required this.product,
-  });
+  const PublicListingCard({super.key, required this.product});
 
   Widget _placeholder() {
     return Container(
       width: 72,
       height: 72,
-      color: AppColors.primaryBlue.withOpacity(0.08),
+      // quitar metodo deprecado
+      color: AppColors.primaryBlue.withValues(alpha: 0.08),
       child: const Icon(
         Icons.inventory_2_outlined,
         color: AppColors.primaryBlue,
@@ -52,14 +50,12 @@ class PublicListingCard extends StatelessWidget {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.08),
+                  // quitar metodo deprecado
+                  color: AppColors.primaryBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
-                  Icons.inventory_2_outlined,
-                  color: AppColors.primaryBlue,
-                  size: 32,
-                ),
+                // simplificar el placeholder
+                child: _placeholder(),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -133,10 +129,7 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }

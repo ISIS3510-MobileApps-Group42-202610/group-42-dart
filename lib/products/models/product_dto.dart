@@ -119,6 +119,9 @@ class ProductDto extends Equatable {
       }
     }
 
+    // fallback para el seller name
+    resolvedSellerName ??= (json['seller_name'] as String?)?.trim();
+
     return ProductDto(
       id: json['id'].toString(),
       title: (json['title'] ?? '').toString(),
@@ -143,7 +146,9 @@ class ProductDto extends Equatable {
       'active': active,
       'condition': condition,
       'image_url': imageUrl,
-      'sellerName': sellerName,
+      // agregar el seller
+      'seller_name': sellerName,
+      'images': images.map((image) => image.toJson()).toList(),
     };
   }
 
