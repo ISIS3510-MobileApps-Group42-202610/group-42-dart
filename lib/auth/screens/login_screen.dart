@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../services/auth_connectivity_helper.dart';
 import '../../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,12 +16,19 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => LoginScreenState();
 }
 
-class LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen>
+    with AuthConnectivityHelper<LoginScreen> {
   final formKey = GlobalKey<FormState>(); // validar formulario
   final emailController = TextEditingController(); // controlador de email
   final passwordController =
       TextEditingController(); // controlador de contraseña
   bool obscure = true; // ocultar contraseña por defecto
+
+  @override
+  void initState() {
+    super.initState();
+    startConnectivityMonitoring();
+  }
 
   @override
   void dispose() {
@@ -31,6 +39,13 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   void submit() {
+    if (!hasConnectivityResult) return;
+
+    if (!isConnected) {
+      showOfflineSnackBar();
+      return;
+    }
+
     // validar formulario y enviar peticion
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
@@ -55,20 +70,12 @@ class LoginScreenState extends State<LoginScreen> {
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
             } else if (state is AuthConnectionError) {
-              // Mostrar el snackbar con color diferente por falta de conexión
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.orange[700],
-                  // naranja para llamar la atencion de mario xd
-                  duration: const Duration(seconds: 4),
-                ),
-              );
+              showOfflineSnackBar(state.message);
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
+            final canSubmit = !isLoading && hasConnectivityResult && isConnected;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -156,7 +163,7 @@ class LoginScreenState extends State<LoginScreen> {
 
                     // Iniciar sesión
                     ElevatedButton(
-                      onPressed: isLoading ? null : submit,
+                      onPressed: canSubmit ? submit : null,
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(

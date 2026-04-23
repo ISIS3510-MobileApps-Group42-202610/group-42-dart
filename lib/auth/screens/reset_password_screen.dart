@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../services/auth_connectivity_helper.dart';
 import '../../theme/app_theme.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -15,7 +16,7 @@ class ResetPasswordScreen extends StatefulWidget {
 }
 
 class ResetPasswordScreenState extends State<ResetPasswordScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AuthConnectivityHelper<ResetPasswordScreen> {
   final formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final tokenController = TextEditingController();
@@ -38,6 +39,7 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
       parent: animationController,
       curve: Curves.easeOutCubic,
     );
+    startConnectivityMonitoring();
   }
 
   @override
@@ -53,6 +55,13 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
   // Acciones
 
   void submitEmail() {
+    if (!hasConnectivityResult) return;
+
+    if (!isConnected) {
+      showOfflineSnackBar();
+      return;
+    }
+
     // Valida solo el campo de email cuando aún no se ha enviado el token
     if (emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
@@ -73,6 +82,13 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
   }
 
   void submitReset() {
+    if (!hasConnectivityResult) return;
+
+    if (!isConnected) {
+      showOfflineSnackBar();
+      return;
+    }
+
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthResetPasswordRequest(
@@ -125,20 +141,12 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
             } else if (state is AuthConnectionError) {
-              // Mostrar el snackbar con color diferente por falta de conexión
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.orange[700],
-                  // naranja para llamar la atencion de mario xd
-                  duration: const Duration(seconds: 4),
-                ),
-              );
+              showOfflineSnackBar(state.message);
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
+            final canSubmit = !isLoading && hasConnectivityResult && isConnected;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -312,11 +320,9 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
 
                     // Boton principal
                     ElevatedButton(
-                      onPressed: isLoading
-                          ? null
-                          : tokenSent
-                          ? submitReset
-                          : submitEmail,
+                      onPressed: canSubmit
+                          ? (tokenSent ? submitReset : submitEmail)
+                          : null,
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(

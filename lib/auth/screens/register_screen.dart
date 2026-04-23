@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../services/auth_connectivity_helper.dart';
 import '../../theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -14,7 +15,8 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen>
+    with AuthConnectivityHelper<RegisterScreen> {
   final formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   final lastNameController = TextEditingController();
@@ -25,6 +27,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool isSeller = false;
   bool obscurePassword = true;
   bool obscureConfirm = true;
+
+  @override
+  void initState() {
+    super.initState();
+    startConnectivityMonitoring();
+  }
 
   @override
   void dispose() {
@@ -38,6 +46,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void submit() {
+    if (!hasConnectivityResult) return;
+
+    if (!isConnected) {
+      showOfflineSnackBar();
+      return;
+    }
+
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthRegisterRequest(
@@ -68,20 +83,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
             } else if (state is AuthConnectionError) {
-              // Mostrar el snackbar con color diferente por falta de conexión
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.orange[700],
-                  // naranja para llamar la atencion de mario xd
-                  duration: const Duration(seconds: 4),
-                ),
-              );
+              showOfflineSnackBar(state.message);
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
+            final canSubmit = !isLoading && hasConnectivityResult && isConnected;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -261,7 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // enviar el form al backend
                     ElevatedButton(
-                      onPressed: isLoading ? null : submit,
+                      onPressed: canSubmit ? submit : null,
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(

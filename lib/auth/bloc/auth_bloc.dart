@@ -3,7 +3,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../services/connectivity_service.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 import '../repositories/auth_repository.dart';
@@ -61,7 +60,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
-    } on ConnectionError catch (e) {
+    } on ConnectionError {
       emit(
         const AuthConnectionError(
           message: 'No internet connection. Please try again later.',
@@ -96,7 +95,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
-    } on ConnectionError catch (e) {
+    } on ConnectionError {
       emit(
         const AuthConnectionError(
           message: 'No internet connection. Please try again later.',
@@ -130,7 +129,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           action: AuthAction.forgotPassword,
         ),
       );
-    } on ConnectionError catch (e) {
+    } on ConnectionError {
       emit(
         const AuthConnectionError(
           message: 'No internet connection. Please try again later.',
@@ -158,7 +157,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           action: AuthAction.resetPassword,
         ),
       );
-    } on ConnectionError catch (e) {
+    } on ConnectionError {
       emit(
         const AuthConnectionError(
           message: 'No internet connection. Please try again later.',
@@ -183,7 +182,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           action: AuthAction.deleteAccount,
         ),
       );
-    } on ConnectionError catch (e) {
+    } on ConnectionError {
       emit(
         const AuthConnectionError(
           message: 'No internet connection. Please try again later.',

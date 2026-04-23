@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../services/auth_connectivity_helper.dart';
 import '../../theme/app_theme.dart';
 
 class DeleteAccountScreen extends StatefulWidget {
@@ -14,10 +15,17 @@ class DeleteAccountScreen extends StatefulWidget {
   State<DeleteAccountScreen> createState() => _DeleteAccountScreenState();
 }
 
-class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
+class _DeleteAccountScreenState extends State<DeleteAccountScreen>
+    with AuthConnectivityHelper<DeleteAccountScreen> {
   final formKey = GlobalKey<FormState>();
   final passwerdController = TextEditingController();
   bool obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    startConnectivityMonitoring();
+  }
 
   @override
   void dispose() {
@@ -26,6 +34,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   }
 
   Future<void> submit() async {
+    if (!hasConnectivityResult) return;
+
+    if (!isConnected) {
+      showOfflineSnackBar();
+      return;
+    }
+
     if (!formKey.currentState!.validate()) return;
 
     final confirmed = await showDialog<bool>(
@@ -80,6 +95,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
     if (confirmed != true || !mounted) return;
 
+    if (!hasConnectivityResult) return;
+
+    if (!isConnected) {
+      showOfflineSnackBar();
+      return;
+    }
+
     context.read<AuthBloc>().add(
       AuthDeleteAccountRequest(password: passwerdController.text),
     );
@@ -93,7 +115,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthActionSuccess &&
-                state.action == 'delete_account') {
+                state.action == AuthAction.deleteAccount) {
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
@@ -108,23 +130,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
             } else if (state is AuthConnectionError) {
-              // Mostrar el snackbar con color diferente por falta de conexión
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.orange[700],
-                  // naranja para llamar la atencion de mario xd
-                  duration: const Duration(seconds: 4),
-                ),
-              );
+              showOfflineSnackBar(state.message);
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
-            final isConnected =
-                state
-                    is! AuthConnectionError; // verificar que no haya un problema de conexión
+            final canSubmit = !isLoading && hasConnectivityResult && isConnected;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -254,13 +265,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                           const SizedBox(height: 24),
 
                           ElevatedButton.icon(
-                            onPressed: isLoading
-                                ? null
-                                : isConnected
-                                ? submit
-                                : null,
+                            onPressed: canSubmit ? submit : null,
                             style: dangerButtonStyle(),
-                            icon: (isLoading | !isConnected)
+                            icon: isLoading
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
