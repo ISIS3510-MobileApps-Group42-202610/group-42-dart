@@ -67,6 +67,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
+            } else if (state is AuthConnectionError) {
+              // Mostrar el snackbar con color diferente por falta de conexión
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.orange[700],
+                  // naranja para llamar la atencion de mario xd
+                  duration: const Duration(seconds: 4),
+                ),
+              );
             }
           },
           builder: (context, state) {

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../services/connectivity_service.dart';
 import 'repositories/auth_repository.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
@@ -22,15 +23,21 @@ class AuthProviders extends StatelessWidget {
     final tokenStorage = TokenStorage();
     final dio = createDio(tokenStorage: tokenStorage, baseUrl: baseUrl);
     final apiClient = AuthApiClient(dio);
+    // nuevo connectivity service para el bloc de auth
+    final connectivityService = ConnectivityService();
+
     final repository = AuthRepository(
       apiTemp: apiClient,
       storageTemp: tokenStorage,
+      connectivityServiceTemp: connectivityService,
     );
 
     return BlocProvider(
       create: (_) =>
-      // ..add es para ejecutar el check session justo despues del bloc
-          AuthBloc(repositoryTemp: repository)..add(const AuthCheckSession()),
+          // ..add es para ejecutar el check session justo despues del bloc
+          AuthBloc(
+            repositoryTemp: repository,
+          )..add(const AuthCheckSession()),
       child: child,
     );
   }

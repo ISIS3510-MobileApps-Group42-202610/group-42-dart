@@ -3,6 +3,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../services/connectivity_service.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 import '../repositories/auth_repository.dart';
@@ -60,6 +61,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
+    } on ConnectionError catch (e) {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
       emit(AuthError(message: extractMessage(e)));
     }
@@ -89,6 +96,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
+    } on ConnectionError catch (e) {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
       emit(AuthError(message: extractMessage(e)));
     }
@@ -96,25 +109,33 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   // logout
   Future<void> onLogout(
-      AuthLogoutRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthLogoutRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     await repository.logout();
     emit(const AuthUnauthenticated());
   }
 
   // olvide contraseña
   Future<void> onForgotPassword(
-      AuthForgotPasswordRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthForgotPasswordRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(const AuthLoading());
     try {
       final response = await repository.forgotPassword(event.email);
-      emit(AuthActionSuccess(
-        message: response.message,
-        action: AuthAction.forgotPassword,
-      ));
+      emit(
+        AuthActionSuccess(
+          message: response.message,
+          action: AuthAction.forgotPassword,
+        ),
+      );
+    } on ConnectionError catch (e) {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
       emit(AuthError(message: extractMessage(e)));
     }
@@ -122,42 +143,56 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   // Reset contraseña
   Future<void> onResetPassword(
-      AuthResetPasswordRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthResetPasswordRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(const AuthLoading());
     try {
       final response = await repository.resetPassword(
         token: event.token,
         newPassword: event.newPassword,
       );
-      emit(AuthActionSuccess(
-        message: response.message,
-        action: AuthAction.resetPassword,
-      ));
+      emit(
+        AuthActionSuccess(
+          message: response.message,
+          action: AuthAction.resetPassword,
+        ),
+      );
+    } on ConnectionError catch (e) {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
       emit(AuthError(message: extractMessage(e)));
     }
   }
-
 
   // Borrar cuenta
   Future<void> onDeleteAccount(
-      AuthDeleteAccountRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthDeleteAccountRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(const AuthLoading());
     try {
       final response = await repository.deleteAccount(event.password);
-      emit(AuthActionSuccess(
-        message: response.message,
-        action: AuthAction.deleteAccount,
-      ));
+      emit(
+        AuthActionSuccess(
+          message: response.message,
+          action: AuthAction.deleteAccount,
+        ),
+      );
+    } on ConnectionError catch (e) {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
       emit(AuthError(message: extractMessage(e)));
     }
   }
-
 
   // Extraer errores
   String extractMessage(Object error) {
@@ -192,5 +227,4 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
     return 'An unexpected error occurred.';
   }
-
 }

@@ -1,5 +1,8 @@
 // basicamente es el entry point para el bloc de auth
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:isis3510_group42_flutter_app/services/connectivity_service.dart';
+
 import '../data/auth_api_client.dart';
 import '../data/token_storage.dart';
 import '../models/auth_models.dart';
@@ -7,15 +10,25 @@ import '../models/auth_models.dart';
 class AuthRepository {
   final AuthApiClient api;
   final TokenStorage storage;
+  final ConnectivityService connectivityService;
 
   AuthRepository({
     required AuthApiClient apiTemp,
     required TokenStorage storageTemp,
+    required ConnectivityService
+    connectivityServiceTemp, // nuevo servicio de conectividad
   }) : api = apiTemp,
-       storage = storageTemp;
+       storage = storageTemp,
+       connectivityService = connectivityServiceTemp;
 
   // Registro de un nuevo usuario
   Future<AuthResponse> register(RegisterRequest request) async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      throw ConnectionError(
+        'No internet connection. Please try again later',
+      );
+    }
     final response = await api.register(request);
     await storage.save(response);
     return response;
@@ -23,6 +36,16 @@ class AuthRepository {
 
   // Inicio de sesión de un usuario existente
   Future<AuthResponse> login(LoginRequest request) async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      AuthUser? result = await tryRestoreSession(); // TODO
+      if ( result == null ) {
+        throw ConnectionError(
+          'No internet connection. Please try again later',
+        );
+      }
+
+    }
     final response = await api.login(request);
     await storage.save(response);
     return response;
@@ -30,6 +53,12 @@ class AuthRepository {
 
   // Forgot password
   Future<MessageResponse> forgotPassword(String email) async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      throw ConnectionError(
+        'No internet connection. Please try again later',
+      );
+    }
     return api.forgotPassword(ForgotPasswordRequest(email: email));
   }
 
@@ -38,19 +67,32 @@ class AuthRepository {
     required String token,
     required String newPassword,
   }) async {
-    return api.resetPassword(ResetPasswordRequest(
-      token: token,
-      newPassword: newPassword,
-    ));
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      throw ConnectionError(
+        'No internet connection. Please try again later',
+      );
+    }
+    return api.resetPassword(
+      ResetPasswordRequest(token: token, newPassword: newPassword),
+    );
   }
 
   // Eliminar cuenta
   Future<MessageResponse> deleteAccount(String password) async {
-    final response = await api.deleteAccount(DeleteAccountRequest(password: password));
-    await storage.clear(); // borrar el localstorage de token para evitar problemas
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      throw ConnectionError(
+        'No internet connection. Please try again later',
+      );
+    }
+    final response = await api.deleteAccount(
+      DeleteAccountRequest(password: password),
+    );
+    await storage
+        .clear(); // borrar el localstorage de token para evitar problemas
     return response;
   }
-
 
   // Verificar si el usuario está logueado
   Future<AuthUser?> tryRestoreSession() async {
@@ -68,4 +110,14 @@ class AuthRepository {
   Future<void> logout() async {
     await storage.clear();
   }
+}
+
+// Excepción personalizada para errores de conexión
+class ConnectionError implements Exception {
+  final String message;
+
+  ConnectionError(this.message);
+
+  @override
+  String toString() => message;
 }

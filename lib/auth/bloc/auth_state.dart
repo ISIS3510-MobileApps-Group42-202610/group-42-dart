@@ -10,7 +10,6 @@ abstract class AuthState extends Equatable {
   List<Object> get props => [];
 }
 
-
 // El app inicia por primera vez
 class AuthInitial extends AuthState {
   const AuthInitial();
@@ -32,12 +31,10 @@ class AuthAuthenticated extends AuthState {
   List<Object> get props => [user, accessToken];
 }
 
-
 // no hay token
 class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated();
 }
-
 
 // error ocurrio durante el login o registro del usuario
 class AuthError extends AuthState {
@@ -50,11 +47,7 @@ class AuthError extends AuthState {
 }
 
 // enum para las posibles acciones que se pueden realizar, sin contar login y registro
-enum AuthAction {
-  forgotPassword,
-  resetPassword,
-  deleteAccount,
-}
+enum AuthAction { forgotPassword, resetPassword, deleteAccount }
 
 // operacion exitosa (no login o registro)
 class AuthActionSuccess extends AuthState {
@@ -67,4 +60,12 @@ class AuthActionSuccess extends AuthState {
   List<Object> get props => [message, action];
 }
 
+// Nuevo estado de error de conexión
+class AuthConnectionError extends AuthState {
+  final String message;
 
+  const AuthConnectionError({required this.message});
+
+  @override
+  List<Object> get props => [message];
+}

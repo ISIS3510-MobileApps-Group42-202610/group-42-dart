@@ -55,15 +55,15 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
   void submitEmail() {
     // Valida solo el campo de email cuando aún no se ha enviado el token
     if (emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter your email')));
       return;
     }
     if (!emailController.text.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid email')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter a valid email')));
       return;
     }
 
@@ -109,20 +109,31 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
             if (state is AuthActionSuccess) {
               if (state.action == AuthAction.forgotPassword) {
                 revealResetFields();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.message)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
               }
               if (state.action == AuthAction.resetPassword) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.message)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
                 Navigator.pushReplacementNamed(context, '/login');
               }
             }
             if (state is AuthError) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+            } else if (state is AuthConnectionError) {
+              // Mostrar el snackbar con color diferente por falta de conexión
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message)),
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.orange[700],
+                  // naranja para llamar la atencion de mario xd
+                  duration: const Duration(seconds: 4),
+                ),
               );
             }
           },
@@ -148,17 +159,17 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                       duration: const Duration(milliseconds: 300),
                       child: tokenSent
                           ? infoBanner(
-                        key: const ValueKey('sent'),
-                        text:
-                        'Check your email for the code we just sent.',
-                        color: AppColors.secondaryGreen,
-                      )
+                              key: const ValueKey('sent'),
+                              text:
+                                  'Check your email for the code we just sent.',
+                              color: AppColors.secondaryGreen,
+                            )
                           : infoBanner(
-                        key: const ValueKey('enter'),
-                        text:
-                        "Enter your email and we'll send you a reset code.",
-                        color: AppColors.primaryBlue,
-                      ),
+                              key: const ValueKey('enter'),
+                              text:
+                                  "Enter your email and we'll send you a reset code.",
+                              color: AppColors.primaryBlue,
+                            ),
                     ),
 
                     const SizedBox(height: 32),
@@ -169,9 +180,11 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                     TextFormField(
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
-                      textInputAction:
-                      tokenSent ? TextInputAction.next : TextInputAction.done,
-                      enabled: !tokenSent, // se bloquea después de enviar
+                      textInputAction: tokenSent
+                          ? TextInputAction.next
+                          : TextInputAction.done,
+                      enabled: !tokenSent,
+                      // se bloquea después de enviar
                       onFieldSubmitted: (_) {
                         if (!tokenSent) submitEmail();
                       },
@@ -211,8 +224,8 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                               ),
                               validator: tokenSent
                                   ? (v) => (v == null || v.isEmpty)
-                                  ? 'Enter the code from your email'
-                                  : null
+                                        ? 'Enter the code from your email'
+                                        : null
                                   : null,
                             ),
 
@@ -237,18 +250,19 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                                     size: 20,
                                   ),
                                   onPressed: () => setState(
-                                        () => obscurePassword = !obscurePassword,
+                                    () => obscurePassword = !obscurePassword,
                                   ),
                                 ),
                               ),
                               validator: tokenSent
                                   ? (v) {
-                                if (v == null || v.isEmpty) return 'Required';
-                                if (v.length < 6) {
-                                  return 'At least 6 characters';
-                                }
-                                return null;
-                              }
+                                      if (v == null || v.isEmpty)
+                                        return 'Required';
+                                      if (v.length < 6) {
+                                        return 'At least 6 characters';
+                                      }
+                                      return null;
+                                    }
                                   : null,
                             ),
 
@@ -274,18 +288,19 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                                     size: 20,
                                   ),
                                   onPressed: () => setState(
-                                        () => obscureConfirm = !obscureConfirm,
+                                    () => obscureConfirm = !obscureConfirm,
                                   ),
                                 ),
                               ),
                               validator: tokenSent
                                   ? (v) {
-                                if (v == null || v.isEmpty) return 'Required';
-                                if (v != passwordController.text) {
-                                  return 'Passwords do not match';
-                                }
-                                return null;
-                              }
+                                      if (v == null || v.isEmpty)
+                                        return 'Required';
+                                      if (v != passwordController.text) {
+                                        return 'Passwords do not match';
+                                      }
+                                      return null;
+                                    }
                                   : null,
                             ),
                           ],
@@ -305,26 +320,28 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           // El boton cambia tambien con el tokenSent
                           // Si no se ha enviado o si ya se envio
                           : AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          tokenSent ? 'Reset Password' : 'Send Reset Code',
-                          key: ValueKey(tokenSent),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                              duration: const Duration(milliseconds: 200),
+                              child: Text(
+                                tokenSent
+                                    ? 'Reset Password'
+                                    : 'Send Reset Code',
+                                key: ValueKey(tokenSent),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                     ),
 
                     const SizedBox(height: 16),

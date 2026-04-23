@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
 import '../data/listings_cache.dart';
-import '../services/connectivity_service.dart';
+import '../../services/connectivity_service.dart';
 import '../models/product_dto.dart';
 import '../models/chat_message.dart';
 

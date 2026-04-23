@@ -6,7 +6,7 @@ import '../analytics/bloc/analytics_bloc.dart';
 import 'bloc/product_bloc.dart';
 import 'data/products_api_client.dart';
 import 'data/listings_cache.dart';
-import 'services/connectivity_service.dart';
+import '../services/connectivity_service.dart';
 import 'repository/product_repository.dart';
 
 class ProductsProviders extends StatelessWidget {
