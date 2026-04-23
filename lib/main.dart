@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'auth/auth.dart';
 import 'analytics/analytics.dart';
+import 'products/data/listings_cache.dart';
 import 'home/screens/home_screen.dart';
 
 Future<void> main() async {
   // startup time
   final appStartTime = DateTime.now();
-  // WidgetsFlutterBinding.ensureInitialized() es necesario para que Hive funcione
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
+  // await ListingsCache().clearSessionCache();
 
   runApp(
     AnalyticsProviders(
