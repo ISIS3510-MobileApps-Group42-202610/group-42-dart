@@ -11,7 +11,7 @@ void main() {
 
   runApp(
     AnalyticsProviders(
-      analyticsBaseUrl: 'https://group-42-analytic-engine-back.vercel.app/',
+      analyticsBaseUrl: 'https://group-42-analytic-engine-back.vercel.app',
       child: AuthProviders(
         baseUrl: 'https://group-42-backend.vercel.app/api/v1/',
         child: UniMarketApp(appStartTime: appStartTime),

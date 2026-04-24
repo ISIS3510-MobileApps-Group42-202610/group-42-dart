@@ -10,6 +10,24 @@ class AnalyticsRepository {
     await apiClient.postPerformanceEvent(request);
   }
 
+  Future<void> postBQ6Event({
+    required String eventName,
+    required int userId,
+    int? sellerId,
+    double? avgResponseMinutes,
+    int? unreadConversations,
+    Map<String, dynamic>? properties,
+  }) async {
+    await apiClient.postBQ6Event(
+      eventName: eventName,
+      userId: userId,
+      sellerId: sellerId,
+      avgResponseMinutes: avgResponseMinutes,
+      unreadConversations: unreadConversations,
+      properties: properties,
+    );
+  }
+
   Future<void> sendBusinessEvent({
     required String eventName,
     required String listingId,
