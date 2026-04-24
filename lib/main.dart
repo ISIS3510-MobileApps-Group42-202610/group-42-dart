@@ -56,6 +56,16 @@ class UniMarketAppState extends State<UniMarketApp> {
 
       // Cambio de estados con el bloc
       home: BlocConsumer<AuthBloc, AuthState>(
+        // Only rebuild the root widget for stable auth states.
+        // Transient states (AuthError, AuthConnectionError, AuthActionSuccess)
+        // are handled by each screen's own listener — rebuilding the root for
+        // them would replace the home widget with LoginScreen mid-flow, which
+        // breaks the Delete Account back-navigation.
+        buildWhen: (previous, current) =>
+            current is AuthInitial ||
+            current is AuthAuthenticated ||
+            current is AuthUnauthenticated ||
+            (current is AuthLoading && previous is AuthInitial),
         listener: (context, state) {
           if (state is AuthUnauthenticated && allowStartupTracking) {
             setState(() => allowStartupTracking = false);

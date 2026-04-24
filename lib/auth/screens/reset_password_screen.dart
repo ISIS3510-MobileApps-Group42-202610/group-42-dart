@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
-import '../services/auth_connectivity_helper.dart';
 import '../../theme/app_theme.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -16,7 +15,7 @@ class ResetPasswordScreen extends StatefulWidget {
 }
 
 class ResetPasswordScreenState extends State<ResetPasswordScreen>
-    with SingleTickerProviderStateMixin, AuthConnectivityHelper<ResetPasswordScreen> {
+    with SingleTickerProviderStateMixin {
   final formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final tokenController = TextEditingController();
@@ -39,7 +38,6 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
       parent: animationController,
       curve: Curves.easeOutCubic,
     );
-    startConnectivityMonitoring();
   }
 
   @override
@@ -55,26 +53,7 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
   // Acciones
 
   void submitEmail() {
-    if (!hasConnectivityResult) return;
-
-    if (!isConnected) {
-      showOfflineSnackBar();
-      return;
-    }
-
-    // Valida solo el campo de email cuando aún no se ha enviado el token
-    if (emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter your email')));
-      return;
-    }
-    if (!emailController.text.contains('@')) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter a valid email')));
-      return;
-    }
+    if (!formKey.currentState!.validate()) return;
 
     context.read<AuthBloc>().add(
       AuthForgotPasswordRequest(email: emailController.text.trim()),
@@ -82,13 +61,6 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
   }
 
   void submitReset() {
-    if (!hasConnectivityResult) return;
-
-    if (!isConnected) {
-      showOfflineSnackBar();
-      return;
-    }
-
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthResetPasswordRequest(
@@ -125,28 +97,50 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
             if (state is AuthActionSuccess) {
               if (state.action == AuthAction.forgotPassword) {
                 revealResetFields();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(state.message)));
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
               }
               if (state.action == AuthAction.resetPassword) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(state.message)));
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
                 Navigator.pushReplacementNamed(context, '/login');
               }
             }
             if (state is AuthError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.black,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
             } else if (state is AuthConnectionError) {
-              showOfflineSnackBar(state.message);
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
-            final canSubmit = !isLoading && hasConnectivityResult && isConnected;
+            final canSubmit = !isLoading;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -201,8 +195,13 @@ class ResetPasswordScreenState extends State<ResetPasswordScreen>
                         icon: Icons.email_outlined,
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Required';
-                        if (!v.contains('@')) return 'Enter a valid email';
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final parts = v.trim().split('@');
+                        if (parts.length != 2 ||
+                            parts[0].isEmpty ||
+                            !parts[1].contains('.')) {
+                          return 'Enter a valid email address';
+                        }
                         return null;
                       },
                     ),

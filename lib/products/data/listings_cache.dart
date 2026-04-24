@@ -8,11 +8,12 @@ import '../models/product_dto.dart';
 class ListingsCache {
   static const String publicListingsKey = 'cached_public_listings';
   static const String sellerListingsKey = 'cached_seller_listings';
+  static const Duration staleAfter = Duration(minutes: 5); // verificar si el cache es reciente
 
   static final CacheManager cacheManager = CacheManager(
     Config(
       'listings_cache_manager',
-      stalePeriod: const Duration(days: 365),
+      stalePeriod: staleAfter,
       maxNrOfCacheObjects: 2,
     ),
   );
@@ -67,6 +68,7 @@ class ListingsCache {
     await cacheManager.removeFile(sellerListingsKey);
   }
 
+  // borrar el cache de las listings, se llama al cerrar sesión para evitar problemas con los datos del usuario anterior
   Future<void> clearSessionCache() async {
     await cacheManager.emptyCache();
   }
@@ -92,7 +94,22 @@ class ListingsCache {
     }
   }
 
+  // verificar si el cache es reciente o no
+  bool isStale(String? fetchedAtIso) {
+    if (fetchedAtIso == null) return true;
+    final fetchedAt = DateTime.tryParse(fetchedAtIso);
+    if (fetchedAt == null) return true;
+    return DateTime.now().difference(fetchedAt) >= staleAfter;
+  }
+
+  // Convenience method so the repository can check staleness without reading the payload twice
+  Future<bool> isCacheStale({required bool isPublic}) async {
+    final lastFetch = await getLastFetchTime(isPublic: isPublic);
+    return isStale(lastFetch?.toIso8601String());
+  }
+
   // función genérica para obtener listings cacheadas, recibe la key del cache
+  // Always returns cached data regardless of age — callers decide what to do with stale data.
   Future<List<ProductDto>?> getCachedListings(String key) async {
     try {
       final payload = await readPayload(key);

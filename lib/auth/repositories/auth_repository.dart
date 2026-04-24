@@ -38,10 +38,7 @@ class AuthRepository {
   Future<AuthResponse> login(LoginRequest request) async {
     final isOnline = await connectivityService.isConnected;
     if (!isOnline) {
-      AuthUser? result = await tryRestoreSession(); // TODO
-      if (result == null) {
-        throw ConnectionError('No internet connection. Please try again later');
-      }
+      throw ConnectionError('No internet connection. Please try again later');
     }
     final response = await api.login(request);
     await storage.save(response);
