@@ -27,6 +27,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool obscureConfirm = true;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     nameController.dispose();
     lastNameController.dispose();
@@ -38,6 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void submit() {
+
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthRegisterRequest(
@@ -64,13 +70,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Navigator.pushReplacementNamed(context, '/home');
             }
             if (state is AuthError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.black,
+                    duration: const Duration(seconds: 4),
+                  )
+              );
+            } else if (state is AuthConnectionError) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 4),
+                  )
+              );
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
+            final canSubmit = !isLoading;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -98,8 +119,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         hint: 'Juan',
                         icon: Icons.person_outline,
                       ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Required' : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final value = v.trim();
+                        if (value.length < 2) return 'At least 2 characters';
+                        if (value.length > 50) return 'Max 50 characters';
+                        final validName = RegExp(r"^[A-Za-zÀ-ÿ' -]+$");
+                        if (!validName.hasMatch(value)) {
+                          return 'Only letters, spaces, apostrophes and hyphens';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 16),
@@ -114,8 +144,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         hint: 'García',
                         icon: Icons.person_outline,
                       ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Required' : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final value = v.trim();
+                        if (value.length < 2) return 'At least 2 characters';
+                        if (value.length > 50) return 'Max 50 characters';
+                        final validName = RegExp(r"^[A-Za-zÀ-ÿ' -]+$");
+                        if (!validName.hasMatch(value)) {
+                          return 'Only letters, spaces, apostrophes and hyphens';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 16),
@@ -132,8 +171,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         icon: Icons.email_outlined,
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Required';
-                        if (!v.contains('@')) return 'Enter a valid email';
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final parts = v.trim().split('@');
+                        if (parts.length != 2 ||
+                            parts[0].isEmpty ||
+                            !parts[1].contains('.')) {
+                          return 'Enter a valid email address';
+                        }
                         return null;
                       },
                     ),
@@ -216,6 +260,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         hint: 'e.g. 5',
                         icon: Icons.school_outlined,
                       ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return null;
+                        final n = int.tryParse(v);
+                        if (n == null) return 'Enter a valid number';
+                        if (n < 1 || n > 10) {
+                          return 'Semester must be between 1 and 10';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 16),
@@ -250,7 +303,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // enviar el form al backend
                     ElevatedButton(
-                      onPressed: isLoading ? null : submit,
+                      onPressed: canSubmit ? submit : null,
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(

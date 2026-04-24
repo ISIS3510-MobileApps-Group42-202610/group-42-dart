@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
 import '../data/listings_cache.dart';
-import '../services/connectivity_service.dart';
+import '../../services/connectivity_service.dart';
 import '../models/product_dto.dart';
 import '../models/chat_message.dart';
 
@@ -24,8 +24,9 @@ class ProductRepository {
     if (!isOnline) {
       final cachedListings = await listingsCache.getCachedPublicListings();
       if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: true);
         throw CacheException(
-          'Connection lost.',
+          stale ? 'App offline - showing data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }
@@ -42,12 +43,12 @@ class ProductRepository {
         rethrow;
       }
 
-      // Si hay error, obtener las listings cacheadaspara mostrar al usuario, indicando que es un error de conexión
+      // Si hay error, obtener las listings cacheadas para mostrar al usuario, indicando que es un error de conexión
       final cachedListings = await listingsCache.getCachedPublicListings();
       if (cachedListings != null && cachedListings.isNotEmpty) {
-        // Error de cache
+        final stale = await listingsCache.isCacheStale(isPublic: true);
         throw CacheException(
-          'Connection lost.',
+          stale ? 'Connection lost - showing data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }
@@ -62,8 +63,9 @@ class ProductRepository {
     if (!isOnline) {
       final cachedListings = await listingsCache.getCachedSellerListings();
       if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: false);
         throw CacheException(
-          'Connection lost.',
+          stale ? 'App offline - showing data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }
@@ -85,8 +87,9 @@ class ProductRepository {
       // Si hay error (no hay conexión, mostrar al usuario)
       final cachedListings = await listingsCache.getCachedSellerListings();
       if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: false);
         throw CacheException(
-          'Connection lost.',
+          stale ? 'Connection lost - showing data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }

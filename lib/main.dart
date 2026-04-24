@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'auth/auth.dart';
 import 'analytics/analytics.dart';
+import 'products/data/listings_cache.dart';
 import 'home/screens/home_screen.dart';
 
 Future<void> main() async {
   // startup time
   final appStartTime = DateTime.now();
-  // WidgetsFlutterBinding.ensureInitialized() es necesario para que Hive funcione
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
+  // await ListingsCache().clearSessionCache();
 
   runApp(
     AnalyticsProviders(
@@ -57,6 +56,16 @@ class UniMarketAppState extends State<UniMarketApp> {
 
       // Cambio de estados con el bloc
       home: BlocConsumer<AuthBloc, AuthState>(
+        // Only rebuild the root widget for stable auth states.
+        // Transient states (AuthError, AuthConnectionError, AuthActionSuccess)
+        // are handled by each screen's own listener — rebuilding the root for
+        // them would replace the home widget with LoginScreen mid-flow, which
+        // breaks the Delete Account back-navigation.
+        buildWhen: (previous, current) =>
+            current is AuthInitial ||
+            current is AuthAuthenticated ||
+            current is AuthUnauthenticated ||
+            (current is AuthLoading && previous is AuthInitial),
         listener: (context, state) {
           if (state is AuthUnauthenticated && allowStartupTracking) {
             setState(() => allowStartupTracking = false);

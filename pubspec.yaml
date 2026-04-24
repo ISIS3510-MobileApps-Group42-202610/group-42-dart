@@ -43,8 +43,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0 # para almacenamiento seguro de tokens
   device_info_plus: ^11.0.0 # para obtener información del dispositivo (BQ2)
   image_picker: ^1.1.2 # para seleccionar imágenes desde la galería o cámara
-  hive: ^2.2.3 # para cache
-  hive_flutter: ^1.1.0 # para cache
+  flutter_cache_manager: ^3.4.1 # corecciooooon cache LRU para listings
   connectivity_plus: ^5.0.2 # para detectar cambios en la conectividad de red
 
 dev_dependencies:
