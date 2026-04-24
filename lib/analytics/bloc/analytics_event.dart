@@ -45,3 +45,31 @@ class TrackBusinessEvent extends AnalyticsEvent {
   @override
   List<Object?> get props => [eventName, listingId, buyerUserId, sellerUserId, metadata];
 }
+
+class TrackBQ6Event extends AnalyticsEvent {
+  final String eventName;
+  final int userId;
+  final int? sellerId;
+  final double? avgResponseMinutes;
+  final int? unreadConversations;
+  final Map<String, dynamic>? properties;
+
+  const TrackBQ6Event({
+    required this.eventName,
+    required this.userId,
+    this.sellerId,
+    this.avgResponseMinutes,
+    this.unreadConversations,
+    this.properties,
+  });
+
+  @override
+  List<Object?> get props => [
+    eventName,
+    userId,
+    sellerId,
+    avgResponseMinutes,
+    unreadConversations,
+    properties,
+  ];
+}

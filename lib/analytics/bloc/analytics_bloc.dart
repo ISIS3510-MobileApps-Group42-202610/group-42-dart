@@ -20,6 +20,7 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   }) : super(const AnalyticsIdle()) {
     on<TrackAppStartup>(onTrackAppStartup);
     on<TrackScreenNavigation>(onTrackScreenNavigation);
+    on<TrackBQ6Event>(onTrackBQ6Event);
     on<TrackBusinessEvent>((event, emit) async {
       try {
         await repository.sendBusinessEvent(
@@ -28,6 +29,8 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
           metadata: event.metadata,
         );
       } catch (e) {
+        print('BQ6 ERROR: $e');
+        emit(AnalyticsError(message: e.toString()));
       }
     });
   }
@@ -71,6 +74,26 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
         ),
       );
       emit(const AnalyticsIdle()); // por si acaso
+    } catch (e) {
+      emit(AnalyticsError(message: e.toString()));
+    }
+  }
+
+  Future<void> onTrackBQ6Event(
+      TrackBQ6Event event,
+      Emitter<AnalyticsState> emit,
+      ) async {
+    try {
+      await repository.postBQ6Event(
+        eventName: event.eventName,
+        userId: event.userId,
+        sellerId: event.sellerId,
+        avgResponseMinutes: event.avgResponseMinutes,
+        unreadConversations: event.unreadConversations,
+        properties: event.properties,
+      );
+
+      emit(const AnalyticsIdle());
     } catch (e) {
       emit(AnalyticsError(message: e.toString()));
     }
