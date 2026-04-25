@@ -62,6 +62,10 @@ class _ChatScreenState extends State<ChatScreen> {
       message,
     );
 
+    setState(() {
+      _messages = ChatService.getMessages(widget.productId);
+    });
+
     // BQ9 tracking
     if (!_firstMessageSent) {
       context.read<AnalyticsBloc>().add(
@@ -170,6 +174,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   alignment: msg.isMe
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
+
+
+
+
+
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.symmetric(
@@ -181,7 +190,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      msg.text,
+                      msg.status == MessageStatus.pending
+                          ? "⏳ ${msg.text}"
+                          : msg.text,
                       style: TextStyle(
                         color:
                         msg.isMe ? Colors.white : Colors.black87,
@@ -211,6 +222,31 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: _simulateSellerReply,
             child: const Text("Simulate seller reply"),
           ),
+
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () async {
+                  setState(() {
+                    ChatService.isOnline = !ChatService.isOnline;
+                  });
+
+                  if (ChatService.isOnline) {
+                    await ChatService.retryPendingMessages();
+                    setState(() {
+                      _messages = ChatService.getMessages(widget.productId);
+                    });
+                  }
+                },
+                child: Text(
+                  ChatService.isOnline ? "Go Offline" : "Go Online",
+                ),
+              ),
+            ],
+          ),
+
 
           Container(
             padding:
