@@ -16,7 +16,7 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   AnalyticsBloc({
     required this.repository,
     required this.deviceInfo,
-    this.appVersion = '2.0.0', // esto cambiara en el futuro xd
+    this.appVersion = '1.0.0', // esto cambiara en el futuro xd
   }) : super(const AnalyticsIdle()) {
     on<TrackAppStartup>(onTrackAppStartup);
     on<TrackScreenNavigation>(onTrackScreenNavigation);
