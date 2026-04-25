@@ -134,18 +134,17 @@ class ProductDetailScreen extends StatelessWidget {
               Text("Category: ${product.category}"),
               const Spacer(),
 
-              // boton de contacto
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          productId: product.id,
-                          sellerName: product.sellerName ?? "Unknown",
-                        ),
+            // boton de contacto
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                        productId: product.id,
+                        sellerName: product.sellerName ?? "Unknown", productName: '',
                       ),
                     );
                     // chat?

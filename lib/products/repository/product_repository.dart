@@ -181,7 +181,6 @@ class ProductRepository {
     return data.map((json) {
       return ChatMessage(
         productId: (json['product_id'] ?? json['listing_id'] ?? '').toString(),
-        // agregar el nombre del seller
         sellerName:
             (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown')
                 .toString(),

@@ -162,11 +162,13 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
       await repository.buyProduct(event.productId);
 
+      // TRACKING BQ9
       print("Send transaction_completed for ${event.productId}");
       analyticsBloc.add(
         TrackBusinessEvent(
           eventName: 'transaction_completed',
           listingId: event.productId,
+          buyerUserId: 1, 
           metadata: {
             "price": product?.price ?? 0,
             "category": product?.category ?? "unknown",
