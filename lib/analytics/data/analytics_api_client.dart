@@ -35,6 +35,33 @@ class AnalyticsApiClient {
     print('BQ6 response: ${response.statusCode}');
   }
 
+  Future<void> postCrashEvent({
+    required String featureName,
+    required String codeLocation,
+    required String crashSignature,
+    String? stackTrace,
+    String deviceModel = '',
+    String platform = '',
+    String osVersion = '',
+    String appVersion = '1.0.0',
+    Map<String, dynamic>? metadata,
+  }) async {
+    await dio.post('/api/bq1/events/', data: {
+      'event_name': 'crash_occurred',
+      'feature_name': featureName,
+      'code_location': codeLocation,
+      'crash_signature': crashSignature,
+      'stack_trace': stackTrace ?? '',
+      'device_model': deviceModel,
+      'platform': platform,
+      'os_version': osVersion,
+      'app_version': appVersion,
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
+      'metadata': metadata ?? {},
+      'client_event_id': '${DateTime.now().millisecondsSinceEpoch}_${crashSignature.hashCode}',
+    });
+  }
+
   Future<void> sendBusinessEvent({
     required String eventName,
     required String listingId,
