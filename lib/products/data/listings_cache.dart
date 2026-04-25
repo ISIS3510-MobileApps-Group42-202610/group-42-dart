@@ -1,9 +1,22 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../models/product_dto.dart';
+
+// Encoding de los listings en un isolate
+List<int> encodePayloadOnIsolate(Map<String, dynamic> payload) {
+  return utf8.encode(jsonEncode(payload));
+}
+
+// decoding de los listings en un isolate
+Map<String, dynamic>? decodePayloadOnIsolate(String jsonStr) {
+  final decoded = jsonDecode(jsonStr);
+  if (decoded is Map<String, dynamic>) return decoded;
+  if (decoded is Map) return Map<String, dynamic>.from(decoded);
+  return null;
+}
 
 class ListingsCache {
   static const String publicListingsKey = 'cached_public_listings';
@@ -84,9 +97,12 @@ class ListingsCache {
         'listings': listings.map((p) => p.toJson()).toList(),
       };
 
+      // Invocar un Isolate para codificar los JSON antes de escribir en el cache
+      final encodedPayload = await compute(encodePayloadOnIsolate, payload);
+
       await cacheManager.putFile(
         listingsKey,
-        Uint8List.fromList(utf8.encode(jsonEncode(payload))),
+        Uint8List.fromList(encodedPayload),
         fileExtension: 'json',
       );
     } catch (e) {
@@ -139,9 +155,7 @@ class ListingsCache {
     final jsonStr = await fileInfo.file.readAsString();
     if (jsonStr.isEmpty) return null;
 
-    final decoded = jsonDecode(jsonStr);
-    if (decoded is Map<String, dynamic>) return decoded;
-    if (decoded is Map) return Map<String, dynamic>.from(decoded);
-    return null;
+    // Invocar un Isolate para decodificar los JSON
+    return compute(decodePayloadOnIsolate, jsonStr);
   }
 }

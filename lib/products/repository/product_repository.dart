@@ -26,7 +26,7 @@ class ProductRepository {
       if (cachedListings != null && cachedListings.isNotEmpty) {
         final stale = await listingsCache.isCacheStale(isPublic: true);
         throw CacheException(
-          stale ? 'App offline - showing data older than 5 minutes.' : 'Connection lost.',
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }
@@ -48,7 +48,7 @@ class ProductRepository {
       if (cachedListings != null && cachedListings.isNotEmpty) {
         final stale = await listingsCache.isCacheStale(isPublic: true);
         throw CacheException(
-          stale ? 'Connection lost - showing data older than 5 minutes.' : 'Connection lost.',
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }
@@ -65,7 +65,7 @@ class ProductRepository {
       if (cachedListings != null && cachedListings.isNotEmpty) {
         final stale = await listingsCache.isCacheStale(isPublic: false);
         throw CacheException(
-          stale ? 'App offline - showing data older than 5 minutes.' : 'Connection lost.',
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }
@@ -89,7 +89,7 @@ class ProductRepository {
       if (cachedListings != null && cachedListings.isNotEmpty) {
         final stale = await listingsCache.isCacheStale(isPublic: false);
         throw CacheException(
-          stale ? 'Connection lost - showing data older than 5 minutes.' : 'Connection lost.',
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
           cachedListings: cachedListings,
         );
       }

@@ -27,7 +27,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // eventos
   // Aqui el chiste es mappear cada evento
 
-  // restaurar sesion
+  // restaurar sesion usando isolate para descodificación eficiente en paralelo
   Future<void> onCheckSession(
     AuthCheckSession event,
     Emitter<AuthState> emit,
@@ -43,7 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthUnauthenticated());
       }
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(AuthError(message: "Error restoring session. Please log in again."));
     }
   }
 
@@ -67,7 +67,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "There was an error during login. Please check your credentials and try again.",
+        ),
+      );
     }
   }
 
@@ -102,7 +107,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message: "There was an error during registration. Please try again.",
+        ),
+      );
     }
   }
 
@@ -136,7 +145,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "There was an error processing your request. Please try again.",
+        ),
+      );
     }
   }
 
@@ -164,7 +178,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "There was an error processing your request. Please try again.",
+        ),
+      );
     }
   }
 
@@ -189,7 +208,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "Error deleting account. Please check your password and try again.",
+        ),
+      );
     }
   }
 

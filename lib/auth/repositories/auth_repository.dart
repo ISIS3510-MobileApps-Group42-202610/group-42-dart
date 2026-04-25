@@ -83,10 +83,15 @@ class AuthRepository {
   }
 
   // Verificar si el usuario está logueado
+  // Utiliza isolates para no detener el main cuando se restaura la sesion
   Future<AuthUser?> tryRestoreSession() async {
-    final hasToken = await storage.hasToken(); // sacar el JWT
-    if (!hasToken) return null;
-    return storage.getUser(); // Sacar el user
+    final (token, user) = await storage.restoreSessionOnIsolate();
+
+    if (token == null || user == null) {
+      return null;
+    }
+
+    return user;
   }
 
   // Obtener el JWT
@@ -94,10 +99,9 @@ class AuthRepository {
     return storage.getToken();
   }
 
-  // Borrar el localstorage
+  // Borrar el localstorage - parallelized cleanup
   Future<void> logout() async {
-    await listingsCache.clearSessionCache(); // borrar el cache de las listings si se cierra sesión
-    await storage.clear();
+    await Future.wait([listingsCache.clearSessionCache(), storage.clear()]);
   }
 }
 

@@ -1,5 +1,11 @@
 import 'package:equatable/equatable.dart';
 
+Map<String, dynamic>? asStringDynamicMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return null;
+}
+
 // esta nueva clase es el DTO de image del backend
 class ProductImageDto extends Equatable {
   final int id;
@@ -16,10 +22,10 @@ class ProductImageDto extends Equatable {
 
   factory ProductImageDto.fromJson(Map<String, dynamic> json) {
     return ProductImageDto(
-      id: json['id'] as int,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       url: (json['url'] ?? '').toString(),
       isPrimary: json['is_primary'] as bool? ?? false,
-      sortOrder: json['sort_order'] as int? ?? 0,
+      sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -63,6 +69,19 @@ class ProductDto extends Equatable {
 
   bool get isSold => !active;
 
+  String? get primaryImageUrl {
+    if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
+      return imageUrl!.trim();
+    }
+
+    for (final image in images) {
+      final url = image.url.trim();
+      if (url.isNotEmpty) return url;
+    }
+
+    return null;
+  }
+
   ProductDto copyWith({
     String? id,
     String? title,
@@ -97,23 +116,27 @@ class ProductDto extends Equatable {
     if (images is List && images.isNotEmpty) {
       for (final img in images) {
         // extraer las images del json
-        if (img is Map<String, dynamic>) {
-          parsedImages.add(ProductImageDto.fromJson(img));
+        final imageJson = asStringDynamicMap(img);
+        if (imageJson != null) {
+          parsedImages.add(ProductImageDto.fromJson(imageJson));
         }
       }
       final first = images.first;
-      if (first is Map<String, dynamic>) {
-        resolvedImageUrl = first['url'] as String?;
+      final firstImageJson = asStringDynamicMap(first);
+      if (firstImageJson != null) {
+        resolvedImageUrl = firstImageJson['url'] as String?;
       }
     }
 
     String? resolvedSellerName;
     final seller = json['seller'];
-    if (seller is Map<String, dynamic>) {
-      final user = seller['user'];
-      if (user is Map<String, dynamic>) {
-        final name = (user['name'] ?? '').toString().trim();
-        final lastName = (user['last_name'] ?? '').toString().trim();
+    final sellerJson = asStringDynamicMap(seller);
+    if (sellerJson != null) {
+      final user = sellerJson['user'];
+      final userJson = asStringDynamicMap(user);
+      if (userJson != null) {
+        final name = (userJson['name'] ?? '').toString().trim();
+        final lastName = (userJson['last_name'] ?? '').toString().trim();
         final fullName = '$name $lastName'.trim();
         resolvedSellerName = fullName.isEmpty ? null : fullName;
       }
