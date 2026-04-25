@@ -28,6 +28,30 @@ class AnalyticsRepository {
     );
   }
 
+  Future<void> postCrashEvent({
+    required String featureName,
+    required String codeLocation,
+    required String crashSignature,
+    String? stackTrace,
+    String deviceModel = '',
+    String platform = '',
+    String osVersion = '',
+    String appVersion = '1.0.0',
+    Map<String, dynamic>? metadata,
+  }) async {
+    await apiClient.postCrashEvent(
+      featureName: featureName,
+      codeLocation: codeLocation,
+      crashSignature: crashSignature,
+      stackTrace: stackTrace,
+      deviceModel: deviceModel,
+      platform: platform,
+      osVersion: osVersion,
+      appVersion: appVersion,
+      metadata: metadata,
+    );
+  }
+
   Future<void> sendBusinessEvent({
     required String eventName,
     required String listingId,

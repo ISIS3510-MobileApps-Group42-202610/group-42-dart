@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -7,11 +9,72 @@ import 'analytics/analytics.dart';
 import 'products/data/listings_cache.dart';
 import 'home/screens/home_screen.dart';
 
+// Extracts the first app-specific frame from a stack trace string.
+// Returns e.g. "product_detail_screen.dart:99" or falls back to "unknown".
+String _extractCodeLocation(StackTrace? stack) {
+  if (stack == null) return 'unknown';
+  final frames = stack.toString().split('\n');
+  for (final frame in frames) {
+    if (frame.contains('package:isis3510_group42_flutter_app')) {
+      // Frame looks like: #0  ClassName.method (package:...lib/path/file.dart:42:10)
+      final match = RegExp(r'\(package:[^)]+/lib/([^)]+)\)').firstMatch(frame);
+      if (match != null) return match.group(1) ?? 'unknown';
+    }
+  }
+  return frames.isNotEmpty ? frames.first.trim() : 'unknown';
+}
+
+// Derives a human-readable feature name from the code location path.
+// e.g. "products/screens/product_detail_screen.dart:99" → "ProductDetailScreen"
+String _extractFeatureName(String codeLocation) {
+  final fileName = codeLocation.split('/').last.split(':').first;
+  final base = fileName.replaceAll('.dart', '');
+  return base
+      .split('_')
+      .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join('');
+}
+
+AnalyticsBloc? _analyticsBloc;
+
+void _reportCrash(Object error, StackTrace? stack, {String? context}) {
+  try {
+    final bloc = _analyticsBloc;
+    if (bloc == null || bloc.isClosed) return;
+
+    final codeLocation = _extractCodeLocation(stack);
+    final featureName = _extractFeatureName(codeLocation);
+    final crashSignature = '${error.runtimeType}: ${error.toString().split('\n').first}';
+
+    bloc.add(TrackCrashEvent(
+      featureName: featureName.isEmpty ? (context ?? 'Unknown') : featureName,
+      codeLocation: codeLocation,
+      crashSignature: crashSignature,
+      stackTrace: stack?.toString(),
+      metadata: context != null ? {'context': context} : null,
+    ));
+  } catch (_) {
+    // Never let crash reporting itself throw
+  }
+}
+
 Future<void> main() async {
   // startup time
   final appStartTime = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
   // await ListingsCache().clearSessionCache();
+
+  // Capture Flutter framework errors (widget build failures, rendering errors, etc.)
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    _reportCrash(details.exception, details.stack, context: details.library);
+  };
+
+  // Capture uncaught async/platform errors outside the Flutter widget tree
+  PlatformDispatcher.instance.onError = (error, stack) {
+    _reportCrash(error, stack);
+    return true;
+  };
 
   runApp(
     AnalyticsProviders(
@@ -39,6 +102,9 @@ class UniMarketAppState extends State<UniMarketApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Wire the global crash reporter to this bloc instance as early as possible.
+    _analyticsBloc = context.read<AnalyticsBloc>();
+
     return MaterialApp(
       title: 'UniMarket',
       debugShowCheckedModeBanner: false,

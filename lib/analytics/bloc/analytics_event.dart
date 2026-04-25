@@ -46,6 +46,25 @@ class TrackBusinessEvent extends AnalyticsEvent {
   List<Object?> get props => [eventName, listingId, buyerUserId, sellerUserId, metadata];
 }
 
+class TrackCrashEvent extends AnalyticsEvent {
+  final String featureName;
+  final String codeLocation;
+  final String crashSignature;
+  final String? stackTrace;
+  final Map<String, dynamic>? metadata;
+
+  const TrackCrashEvent({
+    required this.featureName,
+    required this.codeLocation,
+    required this.crashSignature,
+    this.stackTrace,
+    this.metadata,
+  });
+
+  @override
+  List<Object?> get props => [featureName, codeLocation, crashSignature, stackTrace, metadata];
+}
+
 class TrackBQ6Event extends AnalyticsEvent {
   final String eventName;
   final int userId;

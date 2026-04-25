@@ -9,7 +9,11 @@ Dio createAnalyticsDio({
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        // Static token for BQ1 crash event ingestion (authenticated endpoint)
+        'X-Analytics-Token': 'unimarket-bq1-ingest-2026',
+      },
     ),
   );
 }

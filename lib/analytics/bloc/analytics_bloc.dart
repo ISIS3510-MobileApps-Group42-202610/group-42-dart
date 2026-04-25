@@ -16,11 +16,12 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   AnalyticsBloc({
     required this.repository,
     required this.deviceInfo,
-    this.appVersion = '1.0.0', // esto cambiara en el futuro xd
+    this.appVersion = '2.0.0', // esto cambiara en el futuro xd
   }) : super(const AnalyticsIdle()) {
     on<TrackAppStartup>(onTrackAppStartup);
     on<TrackScreenNavigation>(onTrackScreenNavigation);
     on<TrackBQ6Event>(onTrackBQ6Event);
+    on<TrackCrashEvent>(onTrackCrashEvent);
     on<TrackBusinessEvent>((event, emit) async {
       try {
         await repository.sendBusinessEvent(
@@ -76,6 +77,29 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
       emit(const AnalyticsIdle()); // por si acaso
     } catch (e) {
       emit(AnalyticsError(message: e.toString()));
+    }
+  }
+
+  Future<void> onTrackCrashEvent(
+    TrackCrashEvent event,
+    Emitter<AnalyticsState> emit,
+  ) async {
+    try {
+      await repository.postCrashEvent(
+        featureName: event.featureName,
+        codeLocation: event.codeLocation,
+        crashSignature: event.crashSignature,
+        stackTrace: event.stackTrace,
+        deviceModel: deviceInfo.deviceModel,
+        platform: deviceInfo.platform,
+        osVersion: deviceInfo.osVersion,
+        appVersion: appVersion,
+        metadata: event.metadata,
+      );
+      emit(const AnalyticsIdle());
+    } catch (e) {
+      // Silently ignore — crash reporting must never cascade into another crash
+      emit(const AnalyticsIdle());
     }
   }
 
