@@ -21,6 +21,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<DeleteProductRequested>(_onDeleteProduct);
     on<MarkProductAsSoldRequested>(_onMarkAsSold);
     on<MarkProductAsAvailableRequested>(_onMarkAsAvailable);
+    on<SyncPendingProductsRequested>(_onSyncPendingProducts);
   }
 
   Future<void> _onLoadPublicListings(
@@ -225,17 +226,50 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onCreateProduct(
-    CreateProductRequested event,
-    Emitter<ProductState> emit,
-  ) async {
+      CreateProductRequested event,
+      Emitter<ProductState> emit,
+      ) async {
     emit(
       ProductLoading(
         myProducts: List.from(state.myProducts),
         publicProducts: List.from(state.publicProducts),
       ),
     );
+
     try {
+      final isOnline = await repository.connectivityService.isConnected;
+
+      if (!isOnline) {
+        await repository.saveCreateProductForLater(
+          title: event.title,
+          description: event.description,
+          price: event.price,
+          category: event.category,
+          condition: event.condition,
+          imageFiles: event.imageFiles,
+        );
+
+        emit(
+          ProductActionSuccess(
+            message:
+            'No connection. Listing saved locally and will sync when internet is back.',
+            myProducts: state.myProducts,
+            publicProducts: state.publicProducts,
+          ),
+        );
+
+        emit(
+          ProductLoaded(
+            myProducts: state.myProducts,
+            publicProducts: state.publicProducts,
+          ),
+        );
+
+        return;
+      }
+
       final imageUrls = await repository.uploadImages(event.imageFiles);
+
       await repository.createProduct(
         title: event.title,
         description: event.description,
@@ -244,22 +278,52 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         condition: event.condition,
         imageUrls: imageUrls,
       );
+
+      final syncedCount =
+      await repository.syncPendingCreateProductOperations();
+
       final myProducts = await repository.getSellerProducts();
       final publicProducts = await repository.getPublicListings();
+
+      final syncMessage = syncedCount > 0
+          ? ' Listing created successfully. Also synced $syncedCount pending listing(s).'
+          : 'Listing created successfully.';
+
       emit(
         ProductActionSuccess(
-          message: 'Listing created successfully.',
+          message: syncMessage,
           myProducts: myProducts,
           publicProducts: publicProducts,
         ),
       );
+
       emit(
-        ProductLoaded(myProducts: myProducts, publicProducts: publicProducts),
+        ProductLoaded(
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
       );
     } catch (e) {
+      await repository.saveCreateProductForLater(
+        title: event.title,
+        description: event.description,
+        price: event.price,
+        category: event.category,
+        condition: event.condition,
+        imageFiles: event.imageFiles,
+      );
+
       emit(
-        ProductError(
-          message: repository.extractMessage(e),
+        ProductActionSuccess(
+          message:
+          'Connection problem. Listing saved locally and will sync later.',
+          myProducts: state.myProducts,
+          publicProducts: state.publicProducts,
+        ),
+      );
+
+      emit(
+        ProductLoaded(
           myProducts: state.myProducts,
           publicProducts: state.publicProducts,
         ),
@@ -410,6 +474,45 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       );
       emit(
         ProductLoaded(myProducts: myProducts, publicProducts: publicProducts),
+      );
+    } catch (e) {
+      emit(
+        ProductError(
+          message: repository.extractMessage(e),
+          myProducts: state.myProducts,
+          publicProducts: state.publicProducts,
+        ),
+      );
+    }
+  }
+  Future<void> _onSyncPendingProducts(
+      SyncPendingProductsRequested event,
+      Emitter<ProductState> emit,
+      ) async {
+    try {
+      final syncedCount =
+      await repository.syncPendingCreateProductOperations();
+
+      if (syncedCount == 0) {
+        return;
+      }
+
+      final myProducts = await repository.getSellerProducts();
+      final publicProducts = await repository.getPublicListings();
+
+      emit(
+        ProductActionSuccess(
+          message: 'Synced $syncedCount pending listing(s).',
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
+      );
+
+      emit(
+        ProductLoaded(
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
       );
     } catch (e) {
       emit(

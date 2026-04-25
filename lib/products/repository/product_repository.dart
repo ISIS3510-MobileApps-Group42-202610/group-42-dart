@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../data/pending_listing_operations_storage.dart';
+import '../models/pending_listing_operation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
@@ -12,12 +14,15 @@ class ProductRepository {
   final ProductsApiClient apiClient;
   final ListingsCache listingsCache;
   final ConnectivityService connectivityService;
+  final PendingListingOperationsStorage pendingOperationsStorage;
 
   ProductRepository({
     required this.apiClient,
     required this.listingsCache,
     required this.connectivityService,
-  });
+    PendingListingOperationsStorage? pendingOperationsStorage,
+  }) : pendingOperationsStorage =
+      pendingOperationsStorage ?? PendingListingOperationsStorage();
 
   Future<List<ProductDto>> getPublicListings() async {
     // verificar si hay conexión antes de hacer la petición
@@ -188,6 +193,68 @@ class ProductRepository {
   Future<List<String>> getMessages(String productId) async {
     final data = await apiClient.getMessages(productId);
     return data.map((json) => (json['content'] ?? '').toString()).toList();
+  }
+
+  Future<void> saveCreateProductForLater({
+    required String title,
+    required String description,
+    required double price,
+    required String category,
+    required String condition,
+    required List<File> imageFiles,
+  }) async {
+    final operation = PendingListingOperation(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      description: description,
+      price: price,
+      category: category,
+      condition: condition,
+      imagePaths: imageFiles.map((file) => file.path).toList(),
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    await pendingOperationsStorage.savePendingOperation(operation);
+  }
+
+  Future<int> syncPendingCreateProductOperations() async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) return 0;
+
+    final pendingOperations =
+    await pendingOperationsStorage.getPendingOperations();
+
+    int syncedCount = 0;
+
+    for (final operation in pendingOperations) {
+      try {
+        final imageFiles = operation.imagePaths.map((path) => File(path)).toList();
+
+        final imageUrls = await uploadImages(imageFiles);
+
+        await createProduct(
+          title: operation.title,
+          description: operation.description,
+          price: operation.price,
+          category: operation.category,
+          condition: operation.condition,
+          imageUrls: imageUrls,
+        );
+
+        await pendingOperationsStorage.removePendingOperation(operation.id);
+        syncedCount++;
+      } catch (_) {
+        // Si una operación falla, se deja guardada para intentar luego.
+      }
+    }
+
+    return syncedCount;
+  }
+
+  Future<int> getPendingCreateProductCount() async {
+    final pendingOperations =
+    await pendingOperationsStorage.getPendingOperations();
+    return pendingOperations.length;
   }
 
   Future<void> sendMessage(String productId, String content) async {
