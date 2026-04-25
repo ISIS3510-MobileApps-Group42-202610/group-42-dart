@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../bloc/product_bloc.dart';
 import '../models/product_dto.dart';
@@ -54,8 +55,17 @@ class PublicListingCard extends StatelessWidget {
                   color: AppColors.primaryBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                // simplificar el placeholder
-                child: _placeholder(),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: product.primaryImageUrl == null
+                      ? _placeholder()
+                      : CachedNetworkImage(
+                          imageUrl: product.primaryImageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, _) => _placeholder(),
+                          errorWidget: (context, url, error) => _placeholder(),
+                        ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(

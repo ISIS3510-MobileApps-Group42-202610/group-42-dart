@@ -44,6 +44,7 @@ dependencies:
   device_info_plus: ^11.0.0 # para obtener información del dispositivo (BQ2)
   image_picker: ^1.1.2 # para seleccionar imágenes desde la galería o cámara
   flutter_cache_manager: ^3.4.1 # corecciooooon cache LRU para listings
+  cached_network_image: ^3.4.1 # cache de imagenes para browse/detail offline
   connectivity_plus: ^5.0.2 # para detectar cambios en la conectividad de red
 
 dev_dependencies:

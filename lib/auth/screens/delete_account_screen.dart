@@ -104,7 +104,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                       content: Text(state.message),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: Colors.green,
                       duration: const Duration(seconds: 4),
                   )
               );
@@ -128,7 +128,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message),
-                    backgroundColor: Colors.black,
+                    backgroundColor: Colors.orange,
                     duration: const Duration(seconds: 4),
                   )
               );

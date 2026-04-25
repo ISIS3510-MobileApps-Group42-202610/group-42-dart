@@ -23,6 +23,11 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   String _search = '';
   final List<String> _searchHistory = [];
 
+  // Snackbar anti-spam mechanism
+  DateTime? _lastSnackbarTime;
+  String? _lastSnackbarMessage;
+  static const Duration _snackbarCooldown = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
@@ -65,25 +70,47 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     _saveSearch(suggestion);
   }
 
+  bool _shouldShowSnackbar(String message) {
+    final now = DateTime.now();
+    final lastTime = _lastSnackbarTime;
+
+    // Check if message is identical to the last one shown
+    if (_lastSnackbarMessage == message) {
+      return false;
+    }
+
+    // Check if enough time has passed since the last snackbar
+    if (lastTime != null && now.difference(lastTime) < _snackbarCooldown) {
+      return false;
+    }
+
+    _lastSnackbarTime = now;
+    _lastSnackbarMessage = message;
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
         if (state is ProductError) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          if (_shouldShowSnackbar(state.message)) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
         } else if (state is ProductOfflineFromCache) {
-          // Mostrar el snackbar con color diferente por falta de conexión
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.orange[700],
-              // naranja para llamar la atencion de mario xd
-              duration: const Duration(seconds: 4),
-            ),
-          );
+          if (_shouldShowSnackbar(state.message)) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.orange[700],
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
       },
       child: Scaffold(

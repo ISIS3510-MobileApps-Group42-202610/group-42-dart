@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../models/product_dto.dart';
 
@@ -33,17 +34,18 @@ class ProductCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (product.imageUrl != null)
+                if (product.primaryImageUrl != null)
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        product.imageUrl!,
+                      child: CachedNetworkImage(
+                        imageUrl: product.primaryImageUrl!,
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        errorWidget: (context, url, error) =>
+                            const SizedBox.shrink(),
                       ),
                     ),
                   ),
@@ -61,7 +63,7 @@ class ProductCard extends StatelessWidget {
                   padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(

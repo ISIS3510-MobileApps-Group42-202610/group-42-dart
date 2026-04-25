@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
@@ -10,20 +11,6 @@ class ProductDetailScreen extends StatelessWidget {
   final ProductDto product;
 
   const ProductDetailScreen({super.key, required this.product});
-
-  // metodo para resolver la url de la imagen, priorizando imageUrl y luego el primer item de images
-  String? resolveImageUrl(ProductDto product) {
-    if (product.imageUrl != null && product.imageUrl!.trim().isNotEmpty) {
-      return product.imageUrl!.trim();
-    }
-
-    for (final image in product.images) {
-      final url = image.url.trim();
-      if (url.isNotEmpty) return url;
-    }
-
-    return null;
-  }
 
   // placeholder para imagenes
   Widget imagePlaceholder() {
@@ -41,7 +28,7 @@ class ProductDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // mostrar la imagen del producto, con un placeholder si no hay imagen o si la url es invalida
-    final imageUrl = resolveImageUrl(product);
+    final imageUrl = product.primaryImageUrl;
 
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
@@ -96,10 +83,11 @@ class ProductDetailScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: imageUrl == null
                       ? imagePlaceholder()
-                      : Image.network(
-                          imageUrl,
+                      : CachedNetworkImage(
+                          imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                          placeholder: (context, _) => imagePlaceholder(),
+                          errorWidget: (context, url, error) =>
                               imagePlaceholder(),
                         ),
                 ),
