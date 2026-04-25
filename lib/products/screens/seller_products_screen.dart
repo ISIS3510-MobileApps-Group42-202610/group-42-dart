@@ -23,6 +23,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductBloc>().add(const LoadSellerProducts());
+      context.read<ProductBloc>().add(const SyncPendingProductsRequested());
     });
   }
 

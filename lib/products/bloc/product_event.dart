@@ -116,3 +116,7 @@ class MarkProductAsAvailableRequested extends ProductEvent {
   @override
   List<Object?> get props => [productId];
 }
+
+class SyncPendingProductsRequested extends ProductEvent {
+  const SyncPendingProductsRequested();
+}
