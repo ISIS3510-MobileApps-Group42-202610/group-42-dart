@@ -19,10 +19,7 @@ class ProductInitial extends ProductState {
 }
 
 class ProductLoading extends ProductState {
-  const ProductLoading({
-    super.myProducts,
-    super.publicProducts,
-  });
+  const ProductLoading({super.myProducts, super.publicProducts});
 }
 
 class ProductLoaded extends ProductState {
@@ -50,6 +47,41 @@ class ProductError extends ProductState {
 
   const ProductError({
     required this.message,
+    super.myProducts,
+    super.publicProducts,
+  });
+
+  @override
+  List<Object?> get props => [message, myProducts, publicProducts];
+}
+
+// Nuevo estado para indicar que se están mostrando datos desde cache por un error de conexión
+class ProductOfflineFromCache extends ProductState {
+  final String message;
+  final bool isPublicListings;
+
+  const ProductOfflineFromCache({
+    required this.message,
+    required this.isPublicListings,
+    required super.myProducts,
+    required super.publicProducts,
+  });
+
+  @override
+  List<Object?> get props => [
+    message,
+    isPublicListings,
+    myProducts,
+    publicProducts,
+  ];
+}
+
+// Nuevo estado para indicar que el usuario no está autorizado
+class ProductUnauthorized extends ProductState {
+  final String message;
+
+  const ProductUnauthorized({
+    this.message = 'Session expired. Please log in again.',
     super.myProducts,
     super.publicProducts,
   });

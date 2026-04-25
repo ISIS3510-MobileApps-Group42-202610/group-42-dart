@@ -1,17 +1,81 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'theme/app_theme.dart';
 import 'auth/auth.dart';
 import 'analytics/analytics.dart';
+import 'products/data/listings_cache.dart';
 import 'home/screens/home_screen.dart';
 
-void main() {
+
+// extrae la ubicacion de codigo
+String extractCodeLocation(StackTrace? stack) {
+  if (stack == null) return 'unknown';
+  final frames = stack.toString().split('\n');
+  for (final frame in frames) {
+    if (frame.contains('package:isis3510_group42_flutter_app')) {
+      final match = RegExp(r'\(package:[^)]+/lib/([^)]+)\)').firstMatch(frame);
+      if (match != null) return match.group(1) ?? 'unknown';
+    }
+  }
+  return frames.isNotEmpty ? frames.first.trim() : 'unknown';
+}
+
+// extrae un nombre de feature legible a partir de la ubicacion de codigo
+String extractFeatureName(String codeLocation) {
+  final fileName = codeLocation.split('/').last.split(':').first;
+  final base = fileName.replaceAll('.dart', '');
+  return base
+      .split('_')
+      .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join('');
+}
+
+AnalyticsBloc? analyticsBloc;
+
+void reportCrash(Object error, StackTrace? stack, {String? context}) {
+  try {
+    final bloc = analyticsBloc;
+    if (bloc == null || bloc.isClosed) return;
+
+    final codeLocation = extractCodeLocation(stack);
+    final featureName = extractFeatureName(codeLocation);
+    final crashSignature = '${error.runtimeType}: ${error.toString().split('\n').first}';
+
+    bloc.add(TrackCrashEvent(
+      featureName: featureName.isEmpty ? (context ?? 'Unknown') : featureName,
+      codeLocation: codeLocation,
+      crashSignature: crashSignature,
+      stackTrace: stack?.toString(),
+      metadata: context != null ? {'context': context} : null,
+    ));
+  } catch (_) {
+    // Never let crash reporting itself throw
+  }
+}
+
+Future<void> main() async {
+  // startup time
   final appStartTime = DateTime.now();
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // capturar errores no atrapados en el framework de Flutter
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    reportCrash(details.exception, details.stack, context: details.library);
+  };
+
+  // capturar errores no atrapados en zonas de Dart (incluye async)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    reportCrash(error, stack);
+    return true;
+  };
 
   runApp(
     AnalyticsProviders(
-      analyticsBaseUrl: 'https://group-42-analytic-engine-back.vercel.app/',
+      analyticsBaseUrl: 'https://group-42-analytic-engine-back.vercel.app',
       child: AuthProviders(
         baseUrl: 'https://group-42-backend.vercel.app/api/v1/',
         child: UniMarketApp(appStartTime: appStartTime),
@@ -35,6 +99,9 @@ class UniMarketAppState extends State<UniMarketApp> {
 
   @override
   Widget build(BuildContext context) {
+    // sacar el bloc analitico para usarlo en el reporte de crashes
+    analyticsBloc = context.read<AnalyticsBloc>();
+
     return MaterialApp(
       title: 'UniMarket',
       debugShowCheckedModeBanner: false,
@@ -52,13 +119,18 @@ class UniMarketAppState extends State<UniMarketApp> {
 
       // Cambio de estados con el bloc
       home: BlocConsumer<AuthBloc, AuthState>(
+        // Solo reconstruir o escuchar en los estados relevantes para evitar loops o reconstrucciones innecesarias
+        buildWhen: (previous, current) =>
+            current is AuthInitial ||
+            current is AuthAuthenticated ||
+            current is AuthUnauthenticated ||
+            (current is AuthLoading && previous is AuthInitial),
         listener: (context, state) {
           if (state is AuthUnauthenticated && allowStartupTracking) {
             setState(() => allowStartupTracking = false);
           }
         },
         builder: (context, state) {
-
           // Caregando
           if (state is AuthInitial || state is AuthLoading) {
             return const Scaffold(

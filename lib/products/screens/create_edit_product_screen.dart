@@ -24,6 +24,8 @@ class CreateEditProductScreen extends StatefulWidget {
 }
 
 class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
+  static const int maxImageCount = 4;
+
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker(); // image picker de flutter que facilita el manejo de galeria y camara
 
@@ -57,6 +59,21 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
   final List<int> removedImageIds = [];
 
   bool get _isEditing => widget.product != null;
+
+  List<ProductImageDto> get visibleExistingImages =>
+      existingImages.where((img) => !removedImageIds.contains(img.id)).toList();
+
+  int get currentImageCount => visibleExistingImages.length + newImageFiles.length;
+
+  bool get canAddMoreImages => currentImageCount < maxImageCount;
+
+  void _showImageLimitReachedMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('You can upload up to 4 pictures only.'),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -141,24 +158,34 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
 
   // Escoger imagenes con camara
   Future<void> pickFromCamera() async {
+    if (!canAddMoreImages) {
+      _showImageLimitReachedMessage();
+      return;
+    }
+
     final picked = await picker.pickImage(
       source: ImageSource.camera, // el source es la camara del selular (SENSOR)
       imageQuality: 80,
       maxWidth: 1200,
     );
-    if (picked != null) {
+    if (picked != null && canAddMoreImages) {
       setState(() => newImageFiles.add(File(picked.path)));
     }
   }
 
   // Escoger imagenes con la galeria del celular
   Future<void> pickFromGallery() async {
+    if (!canAddMoreImages) {
+      _showImageLimitReachedMessage();
+      return;
+    }
+
     final picked = await picker.pickImage(
       source: ImageSource.gallery, // el source es la galeria
       imageQuality: 80,
       maxWidth: 1200,
     );
-    if (picked != null) {
+    if (picked != null && canAddMoreImages) {
       setState(() => newImageFiles.add(File(picked.path)));
     }
   }
@@ -253,9 +280,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
   @override
   Widget build(BuildContext context) {
     // quitar las imagenes removidas
-    final visibleExisting = existingImages
-        .where((img) => !removedImageIds.contains(img.id))
-        .toList();
+    final visibleExisting = visibleExistingImages;
 
     return Scaffold(
       appBar: AppBar(

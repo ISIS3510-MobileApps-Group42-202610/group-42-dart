@@ -19,8 +19,13 @@ class LoginScreenState extends State<LoginScreen> {
   final formKey = GlobalKey<FormState>(); // validar formulario
   final emailController = TextEditingController(); // controlador de email
   final passwordController =
-      TextEditingController(); // controlador de contraseña
+  TextEditingController(); // controlador de contraseña
   bool obscure = true; // ocultar contraseña por defecto
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -31,11 +36,12 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   void submit() {
+
     // validar formulario y enviar peticion
     if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthLoginRequest(
-        email: emailController.text,
+        email: emailController.text.trim(),
         password: passwordController.text,
       ),
     );
@@ -51,13 +57,28 @@ class LoginScreenState extends State<LoginScreen> {
           listener: (context, state) {
             // Display el error como un snackbar
             if (state is AuthError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.black,
+                    duration: const Duration(seconds: 4),
+                  )
+              );
+            } else if (state is AuthConnectionError) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 4),
+                  )
+              );
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
+            final canSubmit = !isLoading;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -87,8 +108,15 @@ class LoginScreenState extends State<LoginScreen> {
                         icon: Icons.email_outlined,
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Required';
-                        if (!v.contains('@')) return 'Enter a valid email';
+                        if (v == null || v
+                            .trim()
+                            .isEmpty) return 'Required';
+                        final parts = v.trim().split('@');
+                        if (parts.length != 2 ||
+                            parts[0].isEmpty ||
+                            !parts[1].contains('.')) {
+                          return 'Enter a valid email address';
+                        }
                         return null;
                       },
                     ),
@@ -145,24 +173,24 @@ class LoginScreenState extends State<LoginScreen> {
 
                     // Iniciar sesión
                     ElevatedButton(
-                      onPressed: isLoading ? null : submit,
+                      onPressed: canSubmit ? submit : null,
                       style: primaryButtonStyle(),
                       child: isLoading
                           ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                           : const Text(
-                              'Log In',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        'Log In',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 16),

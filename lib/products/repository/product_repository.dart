@@ -1,21 +1,107 @@
 import 'dart:io';
 
+import '../data/pending_listing_operations_storage.dart';
+import '../models/pending_listing_operation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
+import '../data/listings_cache.dart';
+import '../../services/connectivity_service.dart';
 import '../models/product_dto.dart';
 import '../models/chat_message.dart';
 
 class ProductRepository {
   final ProductsApiClient apiClient;
+  final ListingsCache listingsCache;
+  final ConnectivityService connectivityService;
+  final PendingListingOperationsStorage pendingOperationsStorage;
 
-  ProductRepository({required this.apiClient});
+  ProductRepository({
+    required this.apiClient,
+    required this.listingsCache,
+    required this.connectivityService,
+    PendingListingOperationsStorage? pendingOperationsStorage,
+  }) : pendingOperationsStorage =
+      pendingOperationsStorage ?? PendingListingOperationsStorage();
 
   Future<List<ProductDto>> getPublicListings() async {
-    return apiClient.getPublicListings();
+    // verificar si hay conexión antes de hacer la petición
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      final cachedListings = await listingsCache.getCachedPublicListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: true);
+        throw CacheException(
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      throw _offlineDioException('/listings');
+    }
+
+    try {
+      final listings = await apiClient.getPublicListings();
+      // cachear el resultado
+      await listingsCache.cachePublicListings(listings);
+      return listings;
+    } catch (e) {
+      if (isUnauthorizedError(e)) {
+        rethrow;
+      }
+
+      // Si hay error, obtener las listings cacheadas para mostrar al usuario, indicando que es un error de conexión
+      final cachedListings = await listingsCache.getCachedPublicListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: true);
+        throw CacheException(
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      // Si no hay cache, retornar el error original
+      rethrow;
+    }
   }
 
   Future<List<ProductDto>> getSellerProducts() async {
-    return apiClient.getMyProducts();
+    // verificar si hay conexión antes de hacer la petición
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      final cachedListings = await listingsCache.getCachedSellerListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: false);
+        throw CacheException(
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      throw _offlineDioException('/listings/my');
+    }
+
+    // implementacion de cache
+    try {
+      final listings = await apiClient.getMyProducts();
+      // meter en cache los listings
+      await listingsCache.cacheSellerListings(listings);
+      return listings;
+    } catch (e) {
+      // Si el error es de autenticación, rethrow para que el bloc maneje el logout
+      if (isUnauthorizedError(e)) {
+        rethrow;
+      }
+
+      // Si hay error (no hay conexión, mostrar al usuario)
+      final cachedListings = await listingsCache.getCachedSellerListings();
+      if (cachedListings != null && cachedListings.isNotEmpty) {
+        final stale = await listingsCache.isCacheStale(isPublic: false);
+        throw CacheException(
+          stale ? 'App offline - showing cached data older than 5 minutes.' : 'Connection lost.',
+          cachedListings: cachedListings,
+        );
+      }
+      // Si no hay cache, rethrow el error original para mostrar mensaje de error
+      rethrow;
+    }
   }
 
   Future<ProductDto> createProduct({
@@ -72,12 +158,16 @@ class ProductRepository {
 
   // subir las fotos a cloudinary, obtener el url de cada foto
   Future<List<String>> uploadImages(List<File> imageFiles) async {
-    final urls = <String>[];
-    for (final file in imageFiles) {
-      final url = await apiClient.uploadImageToCloudinary(file);
-      urls.add(url);
-    }
-    return urls;
+    final imagePaths = imageFiles.map((file) => file.path).toList();
+
+    return compute(
+      uploadImagesOnIsolate,
+      CloudinaryUploadPayload(
+        imagePaths: imagePaths,
+        baseUrl: apiClient.dio.options.baseUrl,
+        authToken: apiClient.dio.options.headers['Authorization']?.toString(),
+      ),
+    );
   }
 
   Future<void> buyProduct(String productId) async {
@@ -91,8 +181,10 @@ class ProductRepository {
     return data.map((json) {
       return ChatMessage(
         productId: (json['product_id'] ?? json['listing_id'] ?? '').toString(),
-        sellerName: (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown').toString(),
-        lastMessage: (json['last_message'] ?? '').toString(), productName: '',
+        sellerName:
+            (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown')
+                .toString(),
+        lastMessage: (json['last_message'] ?? '').toString(),
       );
     }).toList();
   }
@@ -100,6 +192,68 @@ class ProductRepository {
   Future<List<String>> getMessages(String productId) async {
     final data = await apiClient.getMessages(productId);
     return data.map((json) => (json['content'] ?? '').toString()).toList();
+  }
+
+  Future<void> saveCreateProductForLater({
+    required String title,
+    required String description,
+    required double price,
+    required String category,
+    required String condition,
+    required List<File> imageFiles,
+  }) async {
+    final operation = PendingListingOperation(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      description: description,
+      price: price,
+      category: category,
+      condition: condition,
+      imagePaths: imageFiles.map((file) => file.path).toList(),
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    await pendingOperationsStorage.savePendingOperation(operation);
+  }
+
+  Future<int> syncPendingCreateProductOperations() async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) return 0;
+
+    final pendingOperations =
+    await pendingOperationsStorage.getPendingOperations();
+
+    int syncedCount = 0;
+
+    for (final operation in pendingOperations) {
+      try {
+        final imageFiles = operation.imagePaths.map((path) => File(path)).toList();
+
+        final imageUrls = await uploadImages(imageFiles);
+
+        await createProduct(
+          title: operation.title,
+          description: operation.description,
+          price: operation.price,
+          category: operation.category,
+          condition: operation.condition,
+          imageUrls: imageUrls,
+        );
+
+        await pendingOperationsStorage.removePendingOperation(operation.id);
+        syncedCount++;
+      } catch (_) {
+        // Si una operación falla, se deja guardada para intentar luego.
+      }
+    }
+
+    return syncedCount;
+  }
+
+  Future<int> getPendingCreateProductCount() async {
+    final pendingOperations =
+    await pendingOperationsStorage.getPendingOperations();
+    return pendingOperations.length;
   }
 
   Future<void> sendMessage(String productId, String content) async {
@@ -142,4 +296,63 @@ class ProductRepository {
 
     return 'An unexpected error occurred.';
   }
+
+  // Verificar si el error es de autenticación
+  bool isUnauthorizedError(Object error) {
+    return error is DioException && error.response?.statusCode == 401;
+  }
+
+  DioException _offlineDioException(String path) {
+    return DioException(
+      requestOptions: RequestOptions(path: path),
+      type: DioExceptionType.connectionError,
+      error: 'No internet connection.',
+    );
+  }
+}
+
+// Excepción de conexión (se muestra en un snackbar)
+class CacheException implements Exception {
+  final String message;
+  final List<ProductDto> cachedListings;
+
+  CacheException(this.message, {required this.cachedListings});
+
+  @override
+  String toString() => message;
+}
+
+class CloudinaryUploadPayload {
+  final List<String> imagePaths;
+  final String baseUrl;
+  final String? authToken;
+
+  CloudinaryUploadPayload({
+    required this.imagePaths,
+    required this.baseUrl,
+    required this.authToken,
+  });
+}
+
+Future<List<String>> uploadImagesOnIsolate(
+    CloudinaryUploadPayload payload,
+    ) async {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: payload.baseUrl,
+      headers: {
+        if (payload.authToken != null) 'Authorization': payload.authToken,
+      },
+    ),
+  );
+
+  final apiClient = ProductsApiClient(dio: dio);
+  final urls = <String>[];
+
+  for (final path in payload.imagePaths) {
+    final url = await apiClient.uploadImageToCloudinary(File(path));
+    urls.add(url);
+  }
+
+  return urls;
 }
