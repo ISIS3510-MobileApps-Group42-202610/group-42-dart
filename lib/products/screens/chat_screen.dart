@@ -43,6 +43,14 @@ class _ChatScreenState extends State<ChatScreen> {
       isMe: true,
     );
 
+    final authState = context
+        .read<AuthBloc>()
+        .state;
+    int? currentUserId;
+    if (authState is AuthAuthenticated) {
+      currentUserId = authState.user.id;
+    }
+
     setState(() {
       _messages.add(message);
     });
@@ -66,6 +74,21 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       _firstMessageSent = true;
     }
+
+    // TRACKING BQ6 - PRUEBA
+    context.read<AnalyticsBloc>().add(
+      TrackBQ6Event(
+        eventName: 'seller_avg_response_time',
+        userId: currentUserId ?? 1,
+        sellerId: 1,
+        avgResponseMinutes: 15,
+        properties: {
+          'source': 'chat_screen_test',
+          'product_id': widget.productId,
+          'seller_name': widget.sellerName,
+        },
+      ),
+    );
 
     _controller.clear();
 

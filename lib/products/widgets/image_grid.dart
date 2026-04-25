@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
@@ -38,10 +37,8 @@ class ImageGrid extends StatelessWidget {
               child: Image.network(
                 existingImages[i].url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.grey,
-                ),
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.broken_image_outlined, color: Colors.grey),
               ),
               onRemove: () => onRemoveExisting(existingImages[i].id),
             ),
@@ -54,8 +51,8 @@ class ImageGrid extends StatelessWidget {
               onRemove: () => onRemoveNew(i),
             ),
 
-          // Boton para añadir imagenes, no mas de 12
-          if (totalCount < 12)
+          // Boton para añadir imagenes, no mas de 4
+          if (totalCount < 4)
             GestureDetector(
               onTap: onAddTap,
               child: Container(
@@ -63,10 +60,10 @@ class ImageGrid extends StatelessWidget {
                 height: 100,
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.08),
+                  color: AppColors.primaryBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: AppColors.primaryBlue.withOpacity(0.3),
+                    color: AppColors.primaryBlue.withValues(alpha: 0.3),
                     width: 1.5,
                   ),
                 ),

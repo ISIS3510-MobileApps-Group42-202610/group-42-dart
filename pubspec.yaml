@@ -37,12 +37,15 @@ dependencies:
   english_words: ^4.0.0
 
   # Dependencies
-  dio: ^5.4.0
-  flutter_bloc: ^8.1.0
-  equatable: ^2.0.5
-  flutter_secure_storage: ^9.0.0
-  device_info_plus: ^11.0.0
-  image_picker: ^1.1.2
+  dio: ^5.4.0 # http para llamados de API
+  flutter_bloc: ^8.1.0 # bloc para el manejo de eventos y estados
+  equatable: ^2.0.5 # para comparar objetos en bloc
+  flutter_secure_storage: ^9.0.0 # para almacenamiento seguro de tokens
+  device_info_plus: ^11.0.0 # para obtener información del dispositivo (BQ2)
+  image_picker: ^1.1.2 # para seleccionar imágenes desde la galería o cámara
+  flutter_cache_manager: ^3.4.1 # corecciooooon cache LRU para listings
+  cached_network_image: ^3.4.1 # cache de imagenes para browse/detail offline
+  connectivity_plus: ^5.0.2 # para detectar cambios en la conectividad de red
 
 dev_dependencies:
   flutter_test:

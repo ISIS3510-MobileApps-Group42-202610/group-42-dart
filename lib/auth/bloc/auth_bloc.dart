@@ -27,7 +27,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // eventos
   // Aqui el chiste es mappear cada evento
 
-  // restaurar sesion
+  // restaurar sesion usando isolate para descodificación eficiente en paralelo
   Future<void> onCheckSession(
     AuthCheckSession event,
     Emitter<AuthState> emit,
@@ -43,7 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthUnauthenticated());
       }
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(AuthError(message: "Error restoring session. Please log in again."));
     }
   }
 
@@ -60,8 +60,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
+    } on ConnectionError {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "There was an error during login. Please check your credentials and try again.",
+        ),
+      );
     }
   }
 
@@ -89,75 +100,122 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
+    } on ConnectionError {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message: "There was an error during registration. Please try again.",
+        ),
+      );
     }
   }
 
   // logout
   Future<void> onLogout(
-      AuthLogoutRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthLogoutRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     await repository.logout();
     emit(const AuthUnauthenticated());
   }
 
   // olvide contraseña
   Future<void> onForgotPassword(
-      AuthForgotPasswordRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthForgotPasswordRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(const AuthLoading());
     try {
       final response = await repository.forgotPassword(event.email);
-      emit(AuthActionSuccess(
-        message: response.message,
-        action: AuthAction.forgotPassword,
-      ));
+      emit(
+        AuthActionSuccess(
+          message: response.message,
+          action: AuthAction.forgotPassword,
+        ),
+      );
+    } on ConnectionError {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "There was an error processing your request. Please try again.",
+        ),
+      );
     }
   }
 
   // Reset contraseña
   Future<void> onResetPassword(
-      AuthResetPasswordRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthResetPasswordRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(const AuthLoading());
     try {
       final response = await repository.resetPassword(
         token: event.token,
         newPassword: event.newPassword,
       );
-      emit(AuthActionSuccess(
-        message: response.message,
-        action: AuthAction.resetPassword,
-      ));
+      emit(
+        AuthActionSuccess(
+          message: response.message,
+          action: AuthAction.resetPassword,
+        ),
+      );
+    } on ConnectionError {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "There was an error processing your request. Please try again.",
+        ),
+      );
     }
   }
-
 
   // Borrar cuenta
   Future<void> onDeleteAccount(
-      AuthDeleteAccountRequest event,
-      Emitter<AuthState> emit,
-      ) async {
+    AuthDeleteAccountRequest event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(const AuthLoading());
     try {
       final response = await repository.deleteAccount(event.password);
-      emit(AuthActionSuccess(
-        message: response.message,
-        action: AuthAction.deleteAccount,
-      ));
+      emit(
+        AuthActionSuccess(
+          message: response.message,
+          action: AuthAction.deleteAccount,
+        ),
+      );
+    } on ConnectionError {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
     } catch (e) {
-      emit(AuthError(message: extractMessage(e)));
+      emit(
+        AuthError(
+          message:
+              "Error deleting account. Please check your password and try again.",
+        ),
+      );
     }
   }
-
 
   // Extraer errores
   String extractMessage(Object error) {
@@ -192,5 +250,4 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
     return 'An unexpected error occurred.';
   }
-
 }

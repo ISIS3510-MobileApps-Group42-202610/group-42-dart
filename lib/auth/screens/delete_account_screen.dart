@@ -20,6 +20,11 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   bool obscure = true;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     passwerdController.dispose();
     super.dispose();
@@ -93,10 +98,16 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthActionSuccess &&
-                state.action == 'delete_account') {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+                state.action == AuthAction.deleteAccount) {
+              // Mostrar el snackbar con color diferente por falta de conexión
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 4),
+                  )
+              );
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/login',
@@ -104,13 +115,28 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               );
             }
             if (state is AuthError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.black,
+                    duration: const Duration(seconds: 4),
+                  )
+              );
+            } else if (state is AuthConnectionError) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 4),
+                  )
+              );
             }
           },
           builder: (context, state) {
             final isLoading = state is AuthLoading;
+            final canSubmit = !isLoading;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -240,7 +266,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                           const SizedBox(height: 24),
 
                           ElevatedButton.icon(
-                            onPressed: isLoading ? null : submit,
+                            onPressed: canSubmit ? submit : null,
                             style: dangerButtonStyle(),
                             icon: isLoading
                                 ? const SizedBox(

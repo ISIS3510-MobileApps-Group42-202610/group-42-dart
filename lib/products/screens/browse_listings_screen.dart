@@ -23,6 +23,11 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   String _search = '';
   final List<String> _searchHistory = [];
 
+  // Snackbar anti-spam mechanism
+  DateTime? _lastSnackbarTime;
+  String? _lastSnackbarMessage;
+  static const Duration _snackbarCooldown = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
@@ -65,27 +70,59 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     _saveSearch(suggestion);
   }
 
+  bool _shouldShowSnackbar(String message) {
+    final now = DateTime.now();
+    final lastTime = _lastSnackbarTime;
+
+    // Check if message is identical to the last one shown
+    if (_lastSnackbarMessage == message) {
+      return false;
+    }
+
+    // Check if enough time has passed since the last snackbar
+    if (lastTime != null && now.difference(lastTime) < _snackbarCooldown) {
+      return false;
+    }
+
+    _lastSnackbarTime = now;
+    _lastSnackbarMessage = message;
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
         if (state is ProductError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          if (_shouldShowSnackbar(state.message)) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        } else if (state is ProductOfflineFromCache) {
+          if (_shouldShowSnackbar(state.message)) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.orange[700],
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Search listings'),
-        ),
+        appBar: AppBar(title: const Text('Search listings')),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: BlocBuilder<ProductBloc, ProductState>(
               builder: (context, state) {
-                final activeListings =
-                    state.publicProducts.where((p) => p.active).toList();
+                final activeListings = state.publicProducts
+                    .where((p) => p.active)
+                    .toList();
 
                 final filteredActive = activeListings.where((p) {
                   final q = _search.toLowerCase().trim();
@@ -95,19 +132,19 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       p.category.toLowerCase().contains(q);
                 }).toList();
 
-                final recommendedListings = _smartService.getRecommendedListings(
-                  listings: activeListings,
-                  searchHistory: _searchHistory,
-                );
+                final recommendedListings = _smartService
+                    .getRecommendedListings(
+                      listings: activeListings,
+                      searchHistory: _searchHistory,
+                    );
 
-                final suggestions =
-                    _smartService.buildSuggestions(_searchHistory);
+                final suggestions = _smartService.buildSuggestions(
+                  _searchHistory,
+                );
 
                 if ((state is ProductInitial || state is ProductLoading) &&
                     state.publicProducts.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 return RefreshIndicator(
@@ -117,11 +154,11 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                     children: [
                       Text(
                         'Smart search',
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.labelDark,
-                                ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.labelDark,
+                            ),
                       ),
                       const SizedBox(height: 6),
                       const Text(
@@ -213,7 +250,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           ),
                         const SizedBox(height: 24),
                       ],
-                      
+
                       const Text(
                         'AVAILABLE PRODUCTS',
                         style: TextStyle(
@@ -227,7 +264,10 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       if (filteredActive.isEmpty)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('No products found matching your search.', style: TextStyle(color: Colors.grey)),
+                          child: Text(
+                            'No products found matching your search.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
                         )
                       else
                         ...filteredActive.map(
