@@ -45,17 +45,11 @@ class _ChatScreenState extends State<ChatScreen> {
       isMe: true,
     );
 
-    final authState = context
-        .read<AuthBloc>()
-        .state;
+    final authState = context.read<AuthBloc>().state;
     int? currentUserId;
     if (authState is AuthAuthenticated) {
       currentUserId = authState.user.id;
     }
-
-    setState(() {
-      _messages.add(message);
-    });
 
     ChatService.sendMessage(
       widget.productId,
@@ -68,7 +62,6 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages = ChatService.getMessages(widget.productId);
     });
 
-    // BQ9 tracking
     if (!_firstMessageSent) {
       context.read<AnalyticsBloc>().add(
         TrackBusinessEvent(
@@ -81,7 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
       _firstMessageSent = true;
     }
 
-    // TRACKING BQ6 - PRUEBA
     context.read<AnalyticsBloc>().add(
       TrackBQ6Event(
         eventName: 'seller_avg_response_time',
@@ -115,11 +107,11 @@ class _ChatScreenState extends State<ChatScreen> {
       isMe: false,
     );
 
-    setState(() {
-      _messages.add(reply);
-    });
-
     ChatService.sendMessage(widget.productId, widget.productName, widget.sellerName, reply);
+
+    setState(() {
+      _messages = ChatService.getMessages(widget.productId);
+    });
   }
 
   Widget _quickMessage(String text) {
@@ -154,58 +146,50 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: _messages.isEmpty
                 ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.chat_bubble_outline,
-                      size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  const Text("No messages yet",
-                      style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline,
+                            size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        const Text("No messages yet",
+                            style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
 
-                return Align(
-                  alignment: msg.isMe
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-
-
-
-
-
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: msg.isMe
-                          ? AppColors.primaryBlue
-                          : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      msg.status == MessageStatus.pending
-                          ? "⏳ ${msg.text}"
-                          : msg.text,
-                      style: TextStyle(
-                        color:
-                        msg.isMe ? Colors.white : Colors.black87,
-                      ),
-                    ),
+                      return Align(
+                        alignment:
+                            msg.isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: msg.isMe
+                                ? AppColors.primaryBlue
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            msg.status == MessageStatus.pending
+                                ? "⏳ ${msg.text}"
+                                : msg.text,
+                            style: TextStyle(
+                              color: msg.isMe ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
-
           SizedBox(
             height: 40,
             child: ListView(
@@ -218,14 +202,10 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
-
-          // botón para simulator respuesta
           TextButton(
             onPressed: _simulateSellerReply,
             child: const Text("Simulate seller reply"),
           ),
-
-
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -248,11 +228,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
-
-
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -279,8 +256,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         filled: true,
                         fillColor: Colors.grey.shade100,
                         contentPadding:
-                        const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 10),
+                            const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       ),
                     ),
                   ),
@@ -288,8 +264,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   CircleAvatar(
                     backgroundColor: AppColors.primaryBlue,
                     child: IconButton(
-                      icon: const Icon(Icons.send,
-                          color: Colors.white, size: 20),
+                      icon: const Icon(Icons.send, color: Colors.white, size: 20),
                       onPressed: _sendMessage,
                     ),
                   ),
