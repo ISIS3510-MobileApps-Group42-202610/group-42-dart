@@ -43,6 +43,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   }
 
   Future<void> _refresh() async {
+    setState(() {
+    });
     context.read<ProductBloc>().add(const LoadPublicListings());
   }
 
@@ -132,6 +134,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       p.category.toLowerCase().contains(q);
                 }).toList();
 
+                final paginatedProducts = filteredActive.take(6).toList();
+
                 final recommendedListings = _smartService
                     .getRecommendedListings(
                       listings: activeListings,
@@ -219,6 +223,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                         ),
                       ],
                       const SizedBox(height: 24),
+
                       if (_search.trim().isEmpty) ...[
                         const Text(
                           'Recommended for you',
@@ -234,20 +239,12 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           style: TextStyle(color: Colors.grey),
                         ),
                         const SizedBox(height: 12),
-                        if (recommendedListings.isEmpty)
-                          const Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(18),
-                              child: Text(
-                                'No recommendations available yet.',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                          )
-                        else
-                          ...recommendedListings.map(
-                            (product) => PublicListingCard(product: product),
-                          ),
+                        ...recommendedListings
+                            .take(4)
+                            .map(
+                              (product) =>
+                              PublicListingCard(product: product),
+                        ),
                         const SizedBox(height: 24),
                       ],
 
@@ -270,9 +267,24 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           ),
                         )
                       else
-                        ...filteredActive.map(
+                        ...paginatedProducts.map(
                           (product) => PublicListingCard(product: product),
                         ),
+
+                      if (paginatedProducts.length < filteredActive.length)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                });
+                              },
+                              child: const Text("Load more"),
+                            ),
+                          ),
+                        ),
+
                     ],
                   ),
                 );
