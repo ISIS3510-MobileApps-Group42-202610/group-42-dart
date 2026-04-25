@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../data/products_api_client.dart';
 import '../data/listings_cache.dart';
@@ -152,12 +153,16 @@ class ProductRepository {
 
   // subir las fotos a cloudinary, obtener el url de cada foto
   Future<List<String>> uploadImages(List<File> imageFiles) async {
-    final urls = <String>[];
-    for (final file in imageFiles) {
-      final url = await apiClient.uploadImageToCloudinary(file);
-      urls.add(url);
-    }
-    return urls;
+    final imagePaths = imageFiles.map((file) => file.path).toList();
+
+    return compute(
+      uploadImagesOnIsolate,
+      CloudinaryUploadPayload(
+        imagePaths: imagePaths,
+        baseUrl: apiClient.dio.options.baseUrl,
+        authToken: apiClient.dio.options.headers['Authorization']?.toString(),
+      ),
+    );
   }
 
   Future<void> buyProduct(String productId) async {
@@ -249,4 +254,39 @@ class CacheException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class CloudinaryUploadPayload {
+  final List<String> imagePaths;
+  final String baseUrl;
+  final String? authToken;
+
+  CloudinaryUploadPayload({
+    required this.imagePaths,
+    required this.baseUrl,
+    required this.authToken,
+  });
+}
+
+Future<List<String>> uploadImagesOnIsolate(
+    CloudinaryUploadPayload payload,
+    ) async {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: payload.baseUrl,
+      headers: {
+        if (payload.authToken != null) 'Authorization': payload.authToken,
+      },
+    ),
+  );
+
+  final apiClient = ProductsApiClient(dio: dio);
+  final urls = <String>[];
+
+  for (final path in payload.imagePaths) {
+    final url = await apiClient.uploadImageToCloudinary(File(path));
+    urls.add(url);
+  }
+
+  return urls;
 }
