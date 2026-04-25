@@ -120,86 +120,88 @@ class _ProfileTab extends StatelessWidget {
       appBar: AppBar(title: Text('Welcome, $userName')),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: primaryButtonStyle(),
-                onPressed: () {
-                  context.read<AuthBloc>().add(const AuthLogoutRequest());
-                },
-                child: const Text('Logout'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: dangerButtonStyle(),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/delete-account');
-                },
-                child: const Text('Delete account'),
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Divider(),
-            const SizedBox(height: 8),
-            const Text(
-              'Analytics QA',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.bug_report_outlined),
-                label: const Text('Simulate Crash (BQ1)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: primaryButtonStyle(),
+                  onPressed: () {
+                    context.read<AuthBloc>().add(const AuthLogoutRequest());
+                  },
+                  child: const Text('Logout'),
                 ),
-                onPressed: () {
-                  // Tira una excepcion real para simular un crash y probar el data pipeline
-                  throw Exception(
-                    'BQ1 simulated crash — ProfileTab test button',
-                  );
-                },
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.warning_amber_rounded),
-                label: const Text('Simulate Fatal Crash (BQ1)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade800,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: dangerButtonStyle(),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/delete-account');
+                  },
+                  child: const Text('Delete account'),
                 ),
-                onPressed: () {
-                  // Lanza un error asíncrono no capturado — sale del widget tree
-                  // y es atrapado por PlatformDispatcher.instance.onError en main.dart,
-                  // simulando un crash fatal de verdad.
-                  Future.error(
-                    StateError(
-                      'BQ1 simulated FATAL crash — async unhandled error',
+              ),
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Text(
+                'Analytics QA',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.bug_report_outlined),
+                  label: const Text('Simulate Crash (BQ1)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    StackTrace.current,
-                  );
-                },
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    // Tira una excepcion real para simular un crash y probar el data pipeline
+                    throw Exception(
+                      'BQ1 simulated crash — ProfileTab test button',
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.warning_amber_rounded),
+                  label: const Text('Simulate Fatal Crash (BQ1)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade800,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    // Lanza un error asíncrono no capturado — sale del widget tree
+                    // y es atrapado por PlatformDispatcher.instance.onError en main.dart,
+                    // simulando un crash fatal de verdad.
+                    Future.error(
+                      StateError(
+                        'BQ1 simulated FATAL crash — async unhandled error',
+                      ),
+                      StackTrace.current,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
