@@ -37,6 +37,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
     try {
       final publicProducts = await repository.getPublicListings();
+
+      // BQ12
+      print("BQ12 EVENT SENT: listings_viewed - count: ${publicProducts.length}");
+      analyticsBloc.add(
+        TrackBusinessEvent(
+          eventName: 'listings_viewed',
+          metadata: {
+            "total_listings": publicProducts.length,
+          }, listingId: '',
+        ),
+      );
       emit(
         ProductLoaded(
           myProducts: state.myProducts,

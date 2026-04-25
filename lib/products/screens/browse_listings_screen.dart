@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../theme/app_theme.dart';
+import '../../analytics/analytics.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
@@ -33,6 +34,13 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductBloc>().add(const LoadPublicListings());
+
+      // BQ12: listings_viewed
+      context.read<AnalyticsBloc>().add(const TrackBusinessEvent(
+        eventName: 'listings_viewed',
+        listingId: 'all',
+        metadata: {'context': 'main_browse_screen'},
+      ));
     });
   }
 
@@ -43,14 +51,19 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() {
-    });
     context.read<ProductBloc>().add(const LoadPublicListings());
   }
 
   void _saveSearch(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return;
+
+    // BQ12: search_performed
+    context.read<AnalyticsBloc>().add(TrackBusinessEvent(
+      eventName: 'search_performed',
+      listingId: 'none',
+      metadata: {'query': trimmed},
+    ));
 
     setState(() {
       _searchHistory.removeWhere(
@@ -75,17 +88,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   bool _shouldShowSnackbar(String message) {
     final now = DateTime.now();
     final lastTime = _lastSnackbarTime;
-
-    // Check if message is identical to the last one shown
-    if (_lastSnackbarMessage == message) {
-      return false;
-    }
-
-    // Check if enough time has passed since the last snackbar
-    if (lastTime != null && now.difference(lastTime) < _snackbarCooldown) {
-      return false;
-    }
-
+    if (_lastSnackbarMessage == message) return false;
+    if (lastTime != null && now.difference(lastTime) < _snackbarCooldown) return false;
     _lastSnackbarTime = now;
     _lastSnackbarMessage = message;
     return true;
@@ -100,17 +104,6 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
-            );
-          }
-        } else if (state is ProductOfflineFromCache) {
-          if (_shouldShowSnackbar(state.message)) {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.orange[700],
-                duration: const Duration(seconds: 4),
-              ),
             );
           }
         }
@@ -284,7 +277,6 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                             ),
                           ),
                         ),
-
                     ],
                   ),
                 );

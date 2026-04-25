@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
+import '../../analytics/analytics.dart';
 import '../bloc/product_bloc.dart';
 import '../models/product_dto.dart';
 import '../screens/product_detail_screen.dart';
@@ -15,7 +16,6 @@ class PublicListingCard extends StatelessWidget {
     return Container(
       width: 72,
       height: 72,
-      // quitar metodo deprecado
       color: AppColors.primaryBlue.withValues(alpha: 0.08),
       child: const Icon(
         Icons.inventory_2_outlined,
@@ -29,6 +29,17 @@ class PublicListingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
+        // BQ12: listing_opened
+        context.read<AnalyticsBloc>().add(TrackBusinessEvent(
+          eventName: 'listing_opened',
+          listingId: product.id,
+          metadata: {
+            'category': product.category,
+            'title': product.title,
+            'price': product.price,
+          },
+        ));
+
         final bloc = context.read<ProductBloc>();
         Navigator.push(
           context,
@@ -51,7 +62,6 @@ class PublicListingCard extends StatelessWidget {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  // quitar metodo deprecado
                   color: AppColors.primaryBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
                 ),
