@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../theme/app_theme.dart';
 import '../services/chat_service.dart';
-import '../models/chat_message.dart';
+import '../models/message.dart';
 import '../../analytics/analytics.dart';
-import '../../auth/bloc/auth_bloc.dart';
-import '../../auth/bloc/auth_state.dart';
 
 class ChatScreen extends StatefulWidget {
   final String productId;
+  final String productName;
   final String sellerName;
 
   const ChatScreen({
     super.key,
     required this.productId,
+    required this.productName,
     required this.sellerName,
   });
 
@@ -25,46 +25,36 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  List<String> _conversationMessages = [];
+  List<Message> _messages = [];
   bool _firstMessageSent = false;
 
   @override
   void initState() {
     super.initState();
-    final existingChat = ChatService.getChats().cast<ChatMessage?>().firstWhere(
-          (c) => c?.productId == widget.productId,
-          orElse: () => null,
-        );
-    
-    if (existingChat != null) {
-      _conversationMessages.add(existingChat.lastMessage);
-    }
+    _messages = ChatService.getMessages(widget.productId);
   }
 
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-
-    final authState = context.read<AuthBloc>().state;
-    int? currentUserId;
-    if (authState is AuthAuthenticated) {
-      currentUserId = authState.user.id;
-    }
-
-    setState(() {
-      _conversationMessages.add(text);
-    });
-
-    ChatService.addMessage(
-      ChatMessage(
-        productId: widget.productId,
-        sellerName: widget.sellerName,
-        lastMessage: text,
-      ),
+    final message = Message(
+      text: text,
+      isMe: true,
     );
 
-    // TRACKING BQ9
+    setState(() {
+      _messages.add(message);
+    });
+
+    ChatService.sendMessage(
+      widget.productId,
+      widget.productName,
+      widget.sellerName,
+      message,
+    );
+
+    // BQ9 tracking
     if (!_firstMessageSent) {
       context.read<AnalyticsBloc>().add(
         TrackBusinessEvent(
@@ -78,7 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     _controller.clear();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -90,6 +80,31 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _simulateSellerReply() {
+    final reply = Message(
+      text: "Sure, it's still available",
+      isMe: false,
+    );
+
+    setState(() {
+      _messages.add(reply);
+    });
+
+    ChatService.sendMessage(widget.productId, widget.productName, widget.sellerName, reply);
+  }
+
+  Widget _quickMessage(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: ActionChip(
+        label: Text(text),
+        onPressed: () {
+          _controller.text = text;
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,10 +112,10 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.sellerName),
-            const Text(
-              "Online",
-              style: TextStyle(fontSize: 12, color: Colors.greenAccent),
+            Text(widget.productName),
+            Text(
+              "Seller: ${widget.sellerName}",
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -108,48 +123,75 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _conversationMessages.isEmpty
+            child: _messages.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey.shade300),
-                        const SizedBox(height: 16),
-                        const Text("No messages yet", style: TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  )
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.chat_bubble_outline,
+                      size: 64, color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  const Text("No messages yet",
+                      style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            )
                 : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _conversationMessages.length,
-                    itemBuilder: (context, index) {
-                      final msg = _conversationMessages[index];
-                      return Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
-                              bottomLeft: Radius.circular(16),
-                              bottomRight: Radius.circular(0),
-                            ),
-                          ),
-                          child: Text(
-                            msg,
-                            style: const TextStyle(color: Colors.white, fontSize: 15),
-                          ),
-                        ),
-                      );
-                    },
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final msg = _messages[index];
+
+                return Align(
+                  alignment: msg.isMe
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: msg.isMe
+                          ? AppColors.primaryBlue
+                          : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      msg.text,
+                      style: TextStyle(
+                        color:
+                        msg.isMe ? Colors.white : Colors.black87,
+                      ),
+                    ),
                   ),
+                );
+              },
+            ),
           ),
+
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _quickMessage("Hi!"),
+                _quickMessage("Is this still available?"),
+                _quickMessage("I'm interested"),
+                _quickMessage("Can we meet today?"),
+              ],
+            ),
+          ),
+
+          // botón para simulator respuesta
+          TextButton(
+            onPressed: _simulateSellerReply,
+            child: const Text("Simulate seller reply"),
+          ),
+
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -175,7 +217,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         filled: true,
                         fillColor: Colors.grey.shade100,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        contentPadding:
+                        const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
                       ),
                     ),
                   ),
@@ -183,7 +227,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   CircleAvatar(
                     backgroundColor: AppColors.primaryBlue,
                     child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.send,
+                          color: Colors.white, size: 20),
                       onPressed: _sendMessage,
                     ),
                   ),

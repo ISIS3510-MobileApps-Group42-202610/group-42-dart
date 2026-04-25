@@ -92,7 +92,7 @@ class ProductRepository {
       return ChatMessage(
         productId: (json['product_id'] ?? json['listing_id'] ?? '').toString(),
         sellerName: (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown').toString(),
-        lastMessage: (json['last_message'] ?? '').toString(),
+        lastMessage: (json['last_message'] ?? '').toString(), productName: '',
       );
     }).toList();
   }

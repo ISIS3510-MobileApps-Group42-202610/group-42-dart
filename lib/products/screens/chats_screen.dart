@@ -87,7 +87,7 @@ class ChatsScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(
                         productId: chat.productId,
-                        sellerName: chat.sellerName,
+                        sellerName: chat.sellerName, productName: '',
                       ),
                     ),
                   );
