@@ -1,8 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../analytics/bloc/analytics_bloc.dart';
 import '../../analytics/bloc/analytics_event.dart';
-import '../../auth/bloc/auth_bloc.dart';
-import '../../auth/bloc/auth_state.dart';
 import 'product_event.dart';
 import 'product_state.dart';
 import '../repository/product_repository.dart';
@@ -90,15 +88,18 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
       await repository.buyProduct(event.productId);
 
-      print("Send transaction_completed for ${event.productId}");
-      analyticsBloc.add(TrackBusinessEvent(
-        eventName: 'transaction_completed',
-        listingId: event.productId,
-        metadata: {
-          "price": product?.price ?? 0,
-          "category": product?.category ?? "unknown",
-        },
-      ));
+      // TRACKING BQ9
+      analyticsBloc.add(
+        TrackBusinessEvent(
+          eventName: 'transaction_completed',
+          listingId: event.productId,
+          buyerUserId: 1, 
+          metadata: {
+            "price": product?.price ?? 0,
+            "category": product?.category ?? "unknown",
+          },
+        ),
+      );
 
       try {
         await repository.markProductAsSold(event.productId);

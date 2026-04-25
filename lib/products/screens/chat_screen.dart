@@ -70,7 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
         TrackBusinessEvent(
           eventName: 'first_message_sent',
           listingId: widget.productId,
-          buyerUserId: currentUserId,
+          buyerUserId: 1,
           metadata: {"source": "chat_screen"},
         ),
       );
