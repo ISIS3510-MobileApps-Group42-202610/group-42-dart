@@ -146,7 +146,8 @@ class ProductDetailScreen extends StatelessWidget {
                         productId: product.id,
                         sellerName: product.sellerName ?? "Unknown", productName: '',
                       ),
-                    );
+                    ),
+                   );
                     // chat?
                   },
                   child: const Text("Contact seller"),

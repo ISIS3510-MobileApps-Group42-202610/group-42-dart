@@ -184,7 +184,7 @@ class ProductRepository {
         sellerName:
             (json['seller_name'] ?? json['other_user_name'] ?? 'Unknown')
                 .toString(),
-        lastMessage: (json['last_message'] ?? '').toString(),
+        lastMessage: (json['last_message'] ?? '').toString(), productName: '',
       );
     }).toList();
   }
