@@ -6,6 +6,7 @@ import 'package:isis3510_group42_flutter_app/products/data/listings_cache.dart';
 import '../data/auth_api_client.dart';
 import '../data/token_storage.dart';
 import '../models/auth_models.dart';
+import 'dart:io';
 
 class AuthRepository {
   final AuthApiClient api;
@@ -103,6 +104,16 @@ class AuthRepository {
   Future<void> logout() async {
     await Future.wait([listingsCache.clearSessionCache(), storage.clear()]);
   }
+
+  Future<String> uploadProfileImage(File imageFile) async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      throw ConnectionError('No internet connection. Please try again later');
+    }
+
+    return api.uploadProfileImageToCloudinary(imageFile);
+  }
+
 }
 
 // Excepción personalizada para errores de conexión

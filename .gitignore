@@ -46,3 +46,6 @@ app.*.map.json
 
 # Testing related
 /android
+
+group-42-analytic-engine-back/
+sprint4-app-report.pdf

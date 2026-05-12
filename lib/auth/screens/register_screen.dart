@@ -6,6 +6,8 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../../theme/app_theme.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,6 +24,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final passwordControllr = TextEditingController();
   final confirmControler = TextEditingController();
   final semesterController = TextEditingController();
+  final picker = ImagePicker();
+  File? selectedProfileImage;
   bool isSeller = false;
   bool obscurePassword = true;
   bool obscureConfirm = true;
@@ -54,8 +58,99 @@ class _RegisterScreenState extends State<RegisterScreen> {
         semester: semesterController.text.isNotEmpty
             ? int.tryParse(semesterController.text)
             : null,
+        profileImageFile: selectedProfileImage,
         isSeller: isSeller,
       ),
+    );
+  }
+
+  Future<void> pickProfileImage(ImageSource source) async {
+    final picked = await picker.pickImage(
+      source: source,
+      imageQuality: 80,
+      maxWidth: 800,
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      selectedProfileImage = File(picked.path);
+    });
+  }
+
+  void showProfileImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a profile photo'),
+              subtitle: const Text('Uses the phone camera sensor'),
+              onTap: () {
+                Navigator.pop(context);
+                pickProfileImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                pickProfileImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void removeProfileImage() {
+    setState(() {
+      selectedProfileImage = null;
+    });
+  }
+
+  Widget buildProfilePhotoPicker() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: showProfileImageSourceSheet,
+          child: CircleAvatar(
+            radius: 48,
+            backgroundColor: AppColors.inputFill,
+            backgroundImage: selectedProfileImage != null
+                ? FileImage(selectedProfileImage!)
+                : null,
+            child: selectedProfileImage == null
+                ? const Icon(
+              Icons.camera_alt_outlined,
+              size: 36,
+              color: AppColors.primaryBlue,
+            )
+                : null,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: showProfileImageSourceSheet,
+          icon: const Icon(Icons.add_a_photo_outlined),
+          label: Text(
+            selectedProfileImage == null
+                ? 'Add profile photo'
+                : 'Change profile photo',
+          ),
+        ),
+        if (selectedProfileImage != null)
+          TextButton.icon(
+            onPressed: removeProfileImage,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Remove photo'),
+          ),
+      ],
     );
   }
 
@@ -108,6 +203,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
 
                     const SizedBox(height: 36),
+
+                    const SizedBox(height: 24),
+
+                    fieldLabel('Profile photo (optional)'),
+                    const SizedBox(height: 8),
+                    buildProfilePhotoPicker(),
+
+                    const SizedBox(height: 24),
 
                     //First
                     fieldLabel('First Name'),

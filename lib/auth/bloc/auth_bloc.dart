@@ -78,11 +78,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   // reegister
   Future<void> onRegister(
-    AuthRegisterRequest event,
-    Emitter<AuthState> emit,
-  ) async {
+      AuthRegisterRequest event,
+      Emitter<AuthState> emit,
+      ) async {
     emit(const AuthLoading());
+
     try {
+      String? profilePicUrl;
+
+      if (event.profileImageFile != null) {
+        profilePicUrl = await repository.uploadProfileImage(
+          event.profileImageFile!,
+        );
+      }
+
       final response = await repository.register(
         RegisterRequest(
           name: event.name,
@@ -90,10 +99,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: event.email,
           password: event.password,
           semester: event.semester,
-          profilePic: event.profilePic,
+          profilePic: profilePicUrl,
           isSeller: event.isSeller,
         ),
       );
+
       emit(
         AuthAuthenticated(
           user: response.user,
