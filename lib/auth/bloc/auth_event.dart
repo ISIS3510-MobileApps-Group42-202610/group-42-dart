@@ -1,13 +1,14 @@
 // define los eventos que llegan al bloc de auth
 
 import 'package:equatable/equatable.dart';
+import 'dart:io';
 
 // evento basico para el bloc
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 // evento para restaurar la sesion (en caso de haber un JWT)
@@ -33,7 +34,7 @@ class AuthRegisterRequest extends AuthEvent {
   final String email;
   final String password;
   final int? semester;
-  final String? profilePic;
+  final File? profileImageFile;
   final bool isSeller;
 
   const AuthRegisterRequest({
@@ -42,18 +43,18 @@ class AuthRegisterRequest extends AuthEvent {
     required this.email,
     required this.password,
     this.semester,
-    this.profilePic,
-    this.isSeller = false, // por defecto nadie es vendedor
+    this.profileImageFile,
+    this.isSeller = false,
   });
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
     name,
     lastName,
     email,
     password,
-    ?semester,
-    ?profilePic,
+    semester,
+    profileImageFile?.path,
     isSeller,
   ];
 }

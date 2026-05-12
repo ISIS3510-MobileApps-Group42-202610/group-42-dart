@@ -79,30 +79,44 @@ class DeleteAccountRequest {
 class AuthUser {
   final int id;
   final String name;
+  final String lastName;
   final String email;
+  final int? semester;
+  final String? profilePic;
   final bool isSeller;
 
   // se instancia el objeto
   const AuthUser({
     required this.id,
     required this.name,
+    required this.lastName,
     required this.email,
+    this.semester,
+    this.profilePic,
     required this.isSeller,
   });
 
   // el factory es para que devuelva un objeto de la clase AuthUser
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    email: json['email'] as String,
-    isSeller: json['is_seller'] as bool ?? false,
+    id: (json['id'] as num).toInt(),
+    name: json['name'] as String? ?? '',
+    lastName: json['last_name'] as String? ?? '',
+    email: json['email'] as String? ?? '',
+    semester: json['semester'] is num
+        ? (json['semester'] as num).toInt()
+        : null,
+    profilePic: json['profile_pic'] as String?,
+    isSeller: json['is_seller'] as bool? ?? false,
   );
 
   // se mappea el objeto a un json
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'last_name': lastName,
     'email': email,
+    if (semester != null) 'semester': semester,
+    if (profilePic != null) 'profile_pic': profilePic,
     'is_seller': isSeller,
   };
 }

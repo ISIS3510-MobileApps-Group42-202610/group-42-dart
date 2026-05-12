@@ -2,6 +2,7 @@
 
 import 'package:dio/dio.dart';
 import '../models/auth_models.dart';
+import 'dart:io';
 
 
 class AuthApiClient {
@@ -40,4 +41,58 @@ class AuthApiClient {
     final response = await dio.delete('/auth/delete-account', data: request.toJson());
     return MessageResponse.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<Map<String, dynamic>> getCloudinarySignature({
+    String? folder,
+  }) async {
+    final response = await dio.post(
+      '/uploads/cloudinary-signature',
+      data: {
+        if (folder != null) 'folder': folder,
+      },
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) return data;
+
+    throw Exception('Invalid cloudinary signature response.');
+  }
+
+  Future<String> uploadProfileImageToCloudinary(File imageFile) async {
+    final sig = await getCloudinarySignature(
+      folder: 'unimarket/profile_pictures',
+    );
+
+    final cloudName = sig['cloud_name'] ?? sig['cloudName'];
+    final apiKey = sig['api_key'] ?? sig['apiKey'];
+    final timestamp = sig['timestamp'];
+    final signature = sig['signature'];
+    final folder = sig['folder'];
+
+    final uploadDio = Dio();
+
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      ),
+      'api_key': apiKey,
+      'timestamp': timestamp,
+      'signature': signature,
+      if (folder != null) 'folder': folder,
+    });
+
+    final uploadResponse = await uploadDio.post(
+      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+      data: formData,
+    );
+
+    final uploadData = uploadResponse.data;
+    if (uploadData is Map<String, dynamic>) {
+      return (uploadData['secure_url'] ?? uploadData['url']) as String;
+    }
+
+    throw Exception('Invalid Cloudinary upload response.');
+  }
+
 }

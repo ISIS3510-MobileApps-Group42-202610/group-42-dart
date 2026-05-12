@@ -47,7 +47,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
       const BrowseListingsScreen(),
       const ChatsScreen(),
       const SellerProductsScreen(),
-      _ProfileTab(userName: user?.name ?? 'User'),
+      _ProfileTab(user: user),
     ];
 
     return BlocListener<ProductBloc, ProductState>(
@@ -110,12 +110,15 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
 }
 
 class _ProfileTab extends StatelessWidget {
-  final String userName;
+  final AuthUser? user;
 
-  const _ProfileTab({required this.userName});
+  const _ProfileTab({required this.user});
 
   @override
   Widget build(BuildContext context) {
+    final userName = user?.name ?? 'User';
+    final profilePic = user?.profilePic;
+
     return Scaffold(
       appBar: AppBar(title: Text('Welcome, $userName')),
       body: Padding(
@@ -123,6 +126,41 @@ class _ProfileTab extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              CircleAvatar(
+                radius: 52,
+                backgroundColor: AppColors.inputFill,
+                backgroundImage: profilePic != null && profilePic.isNotEmpty
+                    ? NetworkImage(profilePic)
+                    : null,
+                child: profilePic == null || profilePic.isEmpty
+                    ? const Icon(
+                  Icons.person_outline,
+                  size: 48,
+                  color: AppColors.primaryBlue,
+                )
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                userName,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.labelDark,
+                ),
+              ),
+              if (user?.email != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  user!.email,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 28),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -166,7 +204,6 @@ class _ProfileTab extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () {
-                    // Tira una excepcion real para simular un crash y probar el data pipeline
                     throw Exception(
                       'BQ1 simulated crash — ProfileTab test button',
                     );
@@ -188,9 +225,6 @@ class _ProfileTab extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () {
-                    // Lanza un error asíncrono no capturado — sale del widget tree
-                    // y es atrapado por PlatformDispatcher.instance.onError en main.dart,
-                    // simulando un crash fatal de verdad.
                     Future.error(
                       StateError(
                         'BQ1 simulated FATAL crash — async unhandled error',
