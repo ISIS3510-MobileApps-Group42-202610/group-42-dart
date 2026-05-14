@@ -69,14 +69,34 @@ class AnalyticsApiClient {
     int? sellerUserId,
     Map<String, dynamic>? metadata,
   }) async {
-    await dio.post('/api/business-events', data: {
-      'event_name': eventName,
-      'listing_id': listingId,
-      'buyer_user_id': buyerUserId,
-      'seller_user_id': sellerUserId,
+    final parsedListingId = int.tryParse(listingId.trim());
+
+    if (parsedListingId == null || parsedListingId <= 0) {
+      print(
+        'Business analytics not sent: invalid listingId=$listingId, '
+            'eventName=$eventName',
+      );
+      return;
+    }
+
+    final data = <String, dynamic>{
+      'event_name': eventName.trim(),
+      'listing_id': parsedListingId,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'metadata': metadata ?? {},
-      'client_event_id': DateTime.now().millisecondsSinceEpoch.toString(),
-    });
+      'client_event_id': DateTime.now().microsecondsSinceEpoch.toString(),
+    };
+
+    if (buyerUserId != null) {
+      data['buyer_user_id'] = buyerUserId;
+    }
+
+    if (sellerUserId != null) {
+      data['seller_user_id'] = sellerUserId;
+    }
+
+    print('Business analytics sending: $data');
+
+    await dio.post('/api/business-events/', data: data);
   }
 }

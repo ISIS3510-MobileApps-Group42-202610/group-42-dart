@@ -38,7 +38,11 @@ class AuthApiClient {
 
   // DELETE para eliminar cuenta, requiere el JWT y dio se encarga de eso xd
   Future<MessageResponse> deleteAccount(DeleteAccountRequest request) async {
-    final response = await dio.delete('/auth/delete-account', data: request.toJson());
+    final response = await dio.delete(
+      '/auth/account',
+      data: request.toJson(),
+    );
+
     return MessageResponse.fromJson(response.data as Map<String, dynamic>);
   }
 

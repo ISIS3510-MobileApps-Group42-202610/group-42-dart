@@ -434,7 +434,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                     ApostropheThousandsInputFormatter(),
                   ],
                   decoration: uniInputDecoration(
-                    hint: "1'000'000",
+                    hint: "1'000",
                     icon: Icons.attach_money_outlined,
                   ),
                   validator: _priceValidator,

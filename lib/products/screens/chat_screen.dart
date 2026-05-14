@@ -47,6 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final authState = context.read<AuthBloc>().state;
     int? currentUserId;
+
     if (authState is AuthAuthenticated) {
       currentUserId = authState.user.id;
     }
@@ -62,31 +63,23 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages = ChatService.getMessages(widget.productId);
     });
 
-    if (!_firstMessageSent) {
+    if (!_firstMessageSent && currentUserId != null) {
       context.read<AnalyticsBloc>().add(
         TrackBusinessEvent(
-          eventName: 'first_message_sent',
+          eventName: 'chat_started',
           listingId: widget.productId,
-          buyerUserId: 1,
-          metadata: {"source": "chat_screen"},
+          buyerUserId: currentUserId,
+          metadata: {
+            'source': 'chat_screen',
+            'product_id': widget.productId,
+            'product_name': widget.productName,
+            'seller_name': widget.sellerName,
+          },
         ),
       );
+
       _firstMessageSent = true;
     }
-
-    context.read<AnalyticsBloc>().add(
-      TrackBQ6Event(
-        eventName: 'seller_avg_response_time',
-        userId: currentUserId ?? 1,
-        sellerId: 1,
-        avgResponseMinutes: 15,
-        properties: {
-          'source': 'chat_screen_test',
-          'product_id': widget.productId,
-          'seller_name': widget.sellerName,
-        },
-      ),
-    );
 
     _controller.clear();
 

@@ -16,7 +16,7 @@ class DeleteAccountScreen extends StatefulWidget {
 
 class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   final formKey = GlobalKey<FormState>();
-  final passwerdController = TextEditingController();
+  final passwordController = TextEditingController();
   bool obscure = true;
 
   @override
@@ -26,7 +26,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
   @override
   void dispose() {
-    passwerdController.dispose();
+    passwordController.dispose();
     super.dispose();
   }
 
@@ -86,7 +86,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     if (confirmed != true || !mounted) return;
 
     context.read<AuthBloc>().add(
-      AuthDeleteAccountRequest(password: passwerdController.text),
+      AuthDeleteAccountRequest(password: passwordController.text),
     );
   }
 
@@ -238,7 +238,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                           fieldLabel('Current Password'),
                           const SizedBox(height: 8),
                           TextFormField(
-                            controller: passwerdController,
+                            controller: passwordController,
                             obscureText: obscure,
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => submit(),

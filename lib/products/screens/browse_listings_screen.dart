@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../theme/app_theme.dart';
-import '../../analytics/analytics.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
@@ -34,13 +33,6 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductBloc>().add(const LoadPublicListings());
-
-      // BQ12: listings_viewed
-      context.read<AnalyticsBloc>().add(const TrackBusinessEvent(
-        eventName: 'listings_viewed',
-        listingId: 'all',
-        metadata: {'context': 'main_browse_screen'},
-      ));
     });
   }
 
@@ -58,16 +50,9 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return;
 
-    // BQ12: search_performed
-    context.read<AnalyticsBloc>().add(TrackBusinessEvent(
-      eventName: 'search_performed',
-      listingId: 'none',
-      metadata: {'query': trimmed},
-    ));
-
     setState(() {
       _searchHistory.removeWhere(
-        (item) => item.toLowerCase() == trimmed.toLowerCase(),
+            (item) => item.toLowerCase() == trimmed.toLowerCase(),
       );
       _searchHistory.insert(0, trimmed);
 
