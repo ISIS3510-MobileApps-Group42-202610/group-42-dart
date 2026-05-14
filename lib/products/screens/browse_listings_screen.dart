@@ -104,13 +104,15 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                     .where((p) => p.active)
                     .toList();
 
-                final filteredActive = activeListings.where((p) {
-                  final q = _search.toLowerCase().trim();
-                  if (q.isEmpty) return true;
-                  return p.title.toLowerCase().contains(q) ||
-                      p.description.toLowerCase().contains(q) ||
-                      p.category.toLowerCase().contains(q);
-                }).toList();
+                final rankedActive = _smartService.rankListings(
+                  listings: activeListings,
+                  query: _search,
+                  searchHistory: _searchHistory,
+                );
+
+                final filteredActive = _search.trim().isEmpty
+                    ? rankedActive
+                    : rankedActive.take(12).toList();
 
                 final paginatedProducts = filteredActive.take(6).toList();
 
