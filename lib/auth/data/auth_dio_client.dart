@@ -23,25 +23,35 @@ Dio createDio({
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // los paths del login, register, forgot-password y reset-password no necesitan token
         const publicPaths = [
           '/auth/login',
           '/auth/register',
           '/auth/forgot-password',
           '/auth/reset-password',
         ];
+
         final isPublic = publicPaths.contains(options.path);
+
+        print('[DIO] ${options.method} ${options.path}');
+        print('[DIO] isPublic: $isPublic');
+
         if (!isPublic) {
-          // si no es publico, se obtiene el token y se agrega al header
           final token = await tokenStorage.getToken();
+          print('[DIO] token null?: ${token == null}');
+          print('[DIO] token empty?: ${token?.isEmpty}');
+
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
+            print('[DIO] Authorization header added');
           }
         }
-        // se continua con la peticion
+
         return handler.next(options);
       },
       onError: (error, handler) {
+        print('[DIO] ERROR ${error.requestOptions.method} ${error.requestOptions.path}');
+        print('[DIO] status: ${error.response?.statusCode}');
+        print('[DIO] response: ${error.response?.data}');
         return handler.next(error);
       },
     ),

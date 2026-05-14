@@ -148,9 +148,12 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
       buildWhen: (previous, current) {
-        // No reconstruir para AuthLoading si ya estamos en una pantalla activa
-        // Esto evita destruir el LoginScreen mientras procesa el login
-        if (current is AuthLoading) return false;
+        print('[AUTH_GATE] buildWhen: ${previous.runtimeType} -> ${current.runtimeType}');
+
+        if (current is AuthLoading) {
+          print('[AUTH_GATE] AuthLoading ignored by buildWhen');
+          return false;
+        }
 
         return current is AuthInitial ||
             current is AuthAuthenticated ||
@@ -159,40 +162,32 @@ class _AuthGateState extends State<AuthGate> {
             current is AuthConnectionError;
       },
       listener: (context, state) {
+        print('[AUTH_GATE] listener state: ${state.runtimeType}');
+
         if (state is AuthUnauthenticated && allowStartupTracking) {
+          print('[AUTH_GATE] AuthUnauthenticated received');
           setState(() {
             allowStartupTracking = false;
           });
         }
       },
       builder: (context, state) {
+        print('[AUTH_GATE] builder state: ${state.runtimeType}');
+
         if (state is AuthInitial || state is AuthLoading) {
+          print('[AUTH_GATE] showing loading');
           return const Scaffold(
             backgroundColor: Colors.white,
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  UniMarketHeader(subtitle: 'Loading...'),
-                  SizedBox(height: 32),
-                  CircularProgressIndicator(color: AppColors.primaryBlue),
-                ],
-              ),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (state is AuthAuthenticated) {
-          if (allowStartupTracking) {
-            return StartupTracker(
-              appStartTime: widget.appStartTime,
-              child: const HomeScreen(),
-            );
-          }
-
+          print('[AUTH_GATE] showing HomeScreen');
           return const HomeScreen();
         }
 
+        print('[AUTH_GATE] showing LoginScreen');
         return const LoginScreen();
       },
     );

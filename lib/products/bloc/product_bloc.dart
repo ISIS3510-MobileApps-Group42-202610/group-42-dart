@@ -12,7 +12,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final AnalyticsBloc analyticsBloc;
 
   ProductBloc(this.analyticsBloc, {required this.repository})
-    : super(const ProductInitial()) {
+      : super(const ProductInitial()) {
     on<LoadPublicListings>(_onLoadPublicListings);
     on<BuyProductRequested>(_onBuyProduct);
     on<LoadSellerProducts>(_onLoadSellerProducts);
@@ -25,9 +25,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onLoadPublicListings(
-    LoadPublicListings event,
-    Emitter<ProductState> emit,
-  ) async {
+      LoadPublicListings event,
+      Emitter<ProductState> emit,
+      ) async {
+    print('[PRODUCT_BLOC] LoadPublicListings started');
+
     emit(
       ProductLoading(
         myProducts: state.myProducts,
@@ -36,7 +38,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     );
 
     try {
+      print('[PRODUCT_BLOC] calling repository.getPublicListings');
+
       final publicProducts = await repository.getPublicListings();
+
+      print('[PRODUCT_BLOC] public listings loaded: ${publicProducts.length}');
 
       emit(
         ProductLoaded(
@@ -44,8 +50,9 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: publicProducts,
         ),
       );
-      // Si ocurre un cache exception
     } on CacheException catch (e) {
+      print('[PRODUCT_BLOC] CacheException: ${e.message}');
+
       emit(
         ProductOfflineFromCache(
           message: e.message,
@@ -54,9 +61,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: e.cachedListings,
         ),
       );
-      // Si ocurre un error de autenticación
     } on DioException catch (e) {
+      print('[PRODUCT_BLOC] LoadPublicListings DioException');
+      print('[PRODUCT_BLOC] status: ${e.response?.statusCode}');
+      print('[PRODUCT_BLOC] data: ${e.response?.data}');
+      print('[PRODUCT_BLOC] path: ${e.requestOptions.path}');
+      print('[PRODUCT_BLOC] method: ${e.requestOptions.method}');
+      print('[PRODUCT_BLOC] auth header: ${e.requestOptions.headers['Authorization']}');
+
       if (e.response?.statusCode == 401) {
+        print('[PRODUCT_BLOC] emitting ProductUnauthorized because status is 401');
+
         emit(
           ProductUnauthorized(
             myProducts: state.myProducts,
@@ -73,7 +88,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: state.publicProducts,
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      print('[PRODUCT_BLOC] LoadPublicListings unexpected error: $e');
+      print('[PRODUCT_BLOC] stack: $st');
+
       emit(
         ProductError(
           message: repository.extractMessage(e),
@@ -85,9 +103,9 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onLoadSellerProducts(
-    LoadSellerProducts event,
-    Emitter<ProductState> emit,
-  ) async {
+      LoadSellerProducts event,
+      Emitter<ProductState> emit,
+      ) async {
     emit(
       ProductLoading(
         myProducts: state.myProducts,
@@ -104,7 +122,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         ),
       );
     } on CacheException catch (e) {
-      // No hay conexion, hay cache
       emit(
         ProductOfflineFromCache(
           message: e.message,
@@ -143,9 +160,9 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onBuyProduct(
-    BuyProductRequested event,
-    Emitter<ProductState> emit,
-  ) async {
+      BuyProductRequested event,
+      Emitter<ProductState> emit,
+      ) async {
     final List<ProductDto> previousPublicList = List.from(state.publicProducts);
 
     emit(
@@ -157,13 +174,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
     try {
       final product = state.publicProducts.cast<ProductDto?>().firstWhere(
-        (p) => p?.id == event.productId,
+            (p) => p?.id == event.productId,
         orElse: () => null,
       );
 
       await repository.buyProduct(event.productId);
 
-      // TRACKING BQ9
       final parsedProductId = int.tryParse(event.productId);
 
       if (parsedProductId != null && parsedProductId > 0) {
@@ -179,9 +195,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           ),
         );
       } else {
-        print(
-          "Business analytics skipped: invalid productId=${event.productId}",
-        );
+        print("Business analytics skipped: invalid productId=${event.productId}");
       }
 
       try {
@@ -192,23 +206,21 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       final serverMy = await repository.getSellerProducts();
 
       final List<ProductDto> combinedPublicList = List.from(serverPublic);
-      final bool existsInServer = combinedPublicList.any(
-        (p) => p.id == event.productId,
-      );
+      final bool existsInServer =
+      combinedPublicList.any((p) => p.id == event.productId);
 
       if (!existsInServer) {
         try {
           final boughtProduct = previousPublicList.firstWhere(
-            (p) => p.id == event.productId,
+                (p) => p.id == event.productId,
           );
           combinedPublicList.add(boughtProduct.copyWith(active: false));
         } catch (_) {}
       } else {
         for (int i = 0; i < combinedPublicList.length; i++) {
           if (combinedPublicList[i].id == event.productId) {
-            combinedPublicList[i] = combinedPublicList[i].copyWith(
-              active: false,
-            );
+            combinedPublicList[i] =
+                combinedPublicList[i].copyWith(active: false);
           }
         }
       }
@@ -222,7 +234,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       );
 
       emit(
-        ProductLoaded(myProducts: serverMy, publicProducts: combinedPublicList),
+        ProductLoaded(
+          myProducts: serverMy,
+          publicProducts: combinedPublicList,
+        ),
       );
     } catch (e) {
       emit(
@@ -342,20 +357,23 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onUpdateProduct(
-    UpdateProductRequested event,
-    Emitter<ProductState> emit,
-  ) async {
+      UpdateProductRequested event,
+      Emitter<ProductState> emit,
+      ) async {
     emit(
       ProductLoading(
         myProducts: List.from(state.myProducts),
         publicProducts: List.from(state.publicProducts),
       ),
     );
+
     try {
       List<String>? newImageUrls;
+
       if (event.newImageFiles.isNotEmpty) {
         newImageUrls = await repository.uploadImages(event.newImageFiles);
       }
+
       await repository.updateProduct(
         productId: event.productId,
         title: event.title,
@@ -364,12 +382,13 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         category: event.category,
         condition: event.condition,
         newImageUrls: newImageUrls,
-        removedImageIds: event.removedImageIds.isNotEmpty
-            ? event.removedImageIds
-            : null,
+        removedImageIds:
+        event.removedImageIds.isNotEmpty ? event.removedImageIds : null,
       );
+
       final myProducts = await repository.getSellerProducts();
       final publicProducts = await repository.getPublicListings();
+
       emit(
         ProductActionSuccess(
           message: 'Listing updated successfully.',
@@ -377,8 +396,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: publicProducts,
         ),
       );
+
       emit(
-        ProductLoaded(myProducts: myProducts, publicProducts: publicProducts),
+        ProductLoaded(
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
       );
     } catch (e) {
       emit(
@@ -392,19 +415,22 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onDeleteProduct(
-    DeleteProductRequested event,
-    Emitter<ProductState> emit,
-  ) async {
+      DeleteProductRequested event,
+      Emitter<ProductState> emit,
+      ) async {
     emit(
       ProductLoading(
         myProducts: List.from(state.myProducts),
         publicProducts: List.from(state.publicProducts),
       ),
     );
+
     try {
       await repository.deleteProduct(event.productId);
+
       final myProducts = await repository.getSellerProducts();
       final publicProducts = await repository.getPublicListings();
+
       emit(
         ProductActionSuccess(
           message: 'Listing removed successfully.',
@@ -412,8 +438,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: publicProducts,
         ),
       );
+
       emit(
-        ProductLoaded(myProducts: myProducts, publicProducts: publicProducts),
+        ProductLoaded(
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
       );
     } catch (e) {
       emit(
@@ -427,19 +457,22 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onMarkAsSold(
-    MarkProductAsSoldRequested event,
-    Emitter<ProductState> emit,
-  ) async {
+      MarkProductAsSoldRequested event,
+      Emitter<ProductState> emit,
+      ) async {
     emit(
       ProductLoading(
         myProducts: List.from(state.myProducts),
         publicProducts: List.from(state.publicProducts),
       ),
     );
+
     try {
       await repository.markProductAsSold(event.productId);
+
       final myProducts = await repository.getSellerProducts();
       final publicProducts = await repository.getPublicListings();
+
       emit(
         ProductActionSuccess(
           message: 'Listing marked as sold.',
@@ -447,8 +480,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: publicProducts,
         ),
       );
+
       emit(
-        ProductLoaded(myProducts: myProducts, publicProducts: publicProducts),
+        ProductLoaded(
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
       );
     } catch (e) {
       emit(
@@ -462,19 +499,22 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onMarkAsAvailable(
-    MarkProductAsAvailableRequested event,
-    Emitter<ProductState> emit,
-  ) async {
+      MarkProductAsAvailableRequested event,
+      Emitter<ProductState> emit,
+      ) async {
     emit(
       ProductLoading(
         myProducts: List.from(state.myProducts),
         publicProducts: List.from(state.publicProducts),
       ),
     );
+
     try {
       await repository.markProductAsAvailable(event.productId);
+
       final myProducts = await repository.getSellerProducts();
       final publicProducts = await repository.getPublicListings();
+
       emit(
         ProductActionSuccess(
           message: 'Listing marked as available.',
@@ -482,8 +522,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           publicProducts: publicProducts,
         ),
       );
+
       emit(
-        ProductLoaded(myProducts: myProducts, publicProducts: publicProducts),
+        ProductLoaded(
+          myProducts: myProducts,
+          publicProducts: publicProducts,
+        ),
       );
     } catch (e) {
       emit(
@@ -495,6 +539,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       );
     }
   }
+
   Future<void> _onSyncPendingProducts(
       SyncPendingProductsRequested event,
       Emitter<ProductState> emit,

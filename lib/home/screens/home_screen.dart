@@ -10,16 +10,46 @@ import '../../products/products_providers.dart';
 import '../../products/screens/browse_listings_screen.dart';
 import '../../products/screens/seller_products_screen.dart';
 import '../../theme/app_theme.dart';
+import 'package:dio/dio.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final tokenStorage = TokenStorage();
-    final dio = createDio(
-      tokenStorage: tokenStorage,
-      baseUrl: 'https://group-42-backend.vercel.app/api/v1',
+    final authState = context.watch<AuthBloc>().state;
+
+    if (authState is! AuthAuthenticated) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://group-42-backend.vercel.app/api/v1',
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
+
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          print('[HOME_DIO] ${options.method} ${options.path}');
+          print('[HOME_DIO] using token from AuthAuthenticated');
+          options.headers['Authorization'] = 'Bearer ${authState.accessToken}';
+          return handler.next(options);
+        },
+        onError: (error, handler) {
+          print('[HOME_DIO] ERROR ${error.requestOptions.method} ${error.requestOptions.path}');
+          print('[HOME_DIO] status: ${error.response?.statusCode}');
+          print('[HOME_DIO] response: ${error.response?.data}');
+          return handler.next(error);
+        },
+      ),
     );
 
     return ProductsProviders(dio: dio, child: const _HomeScreenView());
@@ -82,6 +112,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
         if (state is ProductUnauthorized && !_handledUnauthorized) {
+          print('[HOME_SCREEN] ProductUnauthorized received. Forcing logout');
           _handledUnauthorized = true;
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           context.read<AuthBloc>().add(const AuthLogoutRequest());
