@@ -22,7 +22,6 @@ class LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
 
   bool obscure = true;
-  bool hasNavigatedToHome = false;
 
   @override
   void dispose() {
@@ -42,19 +41,6 @@ class LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void goToHome() {
-    if (!mounted || hasNavigatedToHome) return;
-
-    hasNavigatedToHome = true;
-
-    print('LOGIN SCREEN RECEIVED AUTHENTICATED, RETURNING TO AUTH GATE');
-
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/',
-          (_) => false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,16 +48,9 @@ class LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: BlocConsumer<AuthBloc, AuthState>(
           listenWhen: (previous, current) {
-            return current is AuthAuthenticated ||
-                current is AuthError ||
-                current is AuthConnectionError;
+            return current is AuthError || current is AuthConnectionError;
           },
           listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              goToHome();
-              return;
-            }
-
             if (state is AuthError) {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
