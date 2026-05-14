@@ -16,6 +16,7 @@ class BrowseListingsScreen extends StatefulWidget {
 }
 
 class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
+  int _visibleProductsCount = 6;
   final TextEditingController _searchController = TextEditingController();
   final SmartRecommendationService _smartService =
       const SmartRecommendationService();
@@ -114,7 +115,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                     ? rankedActive
                     : rankedActive.take(12).toList();
 
-                final paginatedProducts = filteredActive.take(6).toList();
+                final paginatedProducts = filteredActive.take(_visibleProductsCount).toList();
 
                 final recommendedListings = _smartService
                     .getRecommendedListings(
@@ -155,6 +156,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                         onChanged: (value) {
                           setState(() {
                             _search = value;
+                            _visibleProductsCount = 6;
                           });
                         },
                         onSubmitted: (value) {
@@ -170,6 +172,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                                     setState(() {
                                       _searchController.clear();
                                       _search = '';
+                                      _visibleProductsCount = 6;
                                     });
                                   },
                                   icon: const Icon(Icons.clear),
@@ -258,6 +261,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                             child: ElevatedButton(
                               onPressed: () {
                                 setState(() {
+                                  _visibleProductsCount += 6;
                                 });
                               },
                               child: const Text("Load more"),
