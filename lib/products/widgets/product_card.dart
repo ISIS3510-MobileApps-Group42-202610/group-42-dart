@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../models/product_dto.dart';
+import '../utils/price_formatter.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductDto product;
@@ -93,7 +94,7 @@ class ProductCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '\$${product.price.toStringAsFixed(2)}',
+              formatPriceWithApostrophes(product.price),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,

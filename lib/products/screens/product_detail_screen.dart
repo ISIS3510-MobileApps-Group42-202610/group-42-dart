@@ -6,6 +6,7 @@ import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
 import '../models/product_dto.dart';
 import 'chat_screen.dart';
+import '../utils/price_formatter.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductDto product;
@@ -105,7 +106,7 @@ class ProductDetailScreen extends StatelessWidget {
 
               // precio
               Text(
-                "\$${product.price}",
+                formatPriceWithApostrophes(product.price),
                 style: const TextStyle(
                   fontSize: 20,
                   color: Colors.green,

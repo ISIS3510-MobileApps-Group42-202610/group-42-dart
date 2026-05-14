@@ -9,6 +9,7 @@ import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../models/product_dto.dart';
 import '../widgets/image_grid.dart';
+import '../utils/price_formatter.dart';
 
 class CreateEditProductScreen extends StatefulWidget {
   final ProductDto? product;
@@ -25,6 +26,14 @@ class CreateEditProductScreen extends StatefulWidget {
 
 class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
   static const int maxImageCount = 4;
+  static const int minTitleLength = 3;
+  static const int maxTitleLength = 50;
+
+  static const int minDescriptionLength = 20;
+  static const int maxDescriptionLength = 500;
+
+  static const double minPrice = 1000;
+  static const double maxPrice = 10000000;
 
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker(); // image picker de flutter que facilita el manejo de galeria y camara
@@ -86,7 +95,9 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
       text: widget.product?.description ?? '',
     );
     _priceController = TextEditingController(
-      text: widget.product?.price.toString() ?? '',
+      text: widget.product != null
+          ? formatDigitsWithApostrophes(widget.product!.price.round().toString())
+          : '',
     );
     _selectedCategory = _mapApiCategoryToUi(
       widget.product?.category ?? 'other',
@@ -132,10 +143,55 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
     }
   }
 
-  String? _requiredValidator(String? value, String fieldName) {
+  String _cleanText(String value) {
+    return value.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  bool _hasLetterOrNumber(String value) {
+    return RegExp(r'[A-Za-zÀ-ÿ0-9]').hasMatch(value);
+  }
+
+  String? _titleValidator(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please enter $fieldName';
+      return 'Please enter a title';
     }
+
+    final title = _cleanText(value);
+
+    if (title.length < minTitleLength) {
+      return 'Title must be at least $minTitleLength characters';
+    }
+
+    if (title.length > maxTitleLength) {
+      return 'Title cannot be longer than $maxTitleLength characters';
+    }
+
+    if (!_hasLetterOrNumber(title)) {
+      return 'Title must contain letters or numbers';
+    }
+
+    return null;
+  }
+
+  String? _descriptionValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter a description';
+    }
+
+    final description = _cleanText(value);
+
+    if (description.length < minDescriptionLength) {
+      return 'Description must be at least $minDescriptionLength characters';
+    }
+
+    if (description.length > maxDescriptionLength) {
+      return 'Description cannot be longer than $maxDescriptionLength characters';
+    }
+
+    if (!_hasLetterOrNumber(description)) {
+      return 'Description must contain letters or numbers';
+    }
+
     return null;
   }
 
@@ -144,9 +200,18 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
       return 'Please enter a price';
     }
 
-    final parsed = double.tryParse(value.trim());
-    if (parsed == null || parsed <= 0) {
+    final price = parseFormattedPrice(value);
+
+    if (price <= 0) {
       return 'Please enter a valid price';
+    }
+
+    if (price < minPrice) {
+      return 'Price must be at least ${formatPriceWithApostrophes(minPrice)}';
+    }
+
+    if (price > maxPrice) {
+      return 'Price cannot be higher than ${formatPriceWithApostrophes(maxPrice)}';
     }
 
     return null;
@@ -235,7 +300,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
   void submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    if (!_isEditing && newImageFiles.isEmpty) {
+    if (currentImageCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please add at least one product photo.'),
@@ -244,7 +309,7 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
       return;
     }
 
-    final price = double.parse(_priceController.text.trim());
+    final price = parseFormattedPrice(_priceController.text);
 
     if (_isEditing) {
       context.read<ProductBloc>().add(
@@ -326,11 +391,13 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _titleController,
+                  maxLength: maxTitleLength,
+                  textInputAction: TextInputAction.next,
                   decoration: uniInputDecoration(
                     hint: 'Enter the listing title',
                     icon: Icons.inventory_2_outlined,
                   ),
-                  validator: (value) => _requiredValidator(value, 'a title'),
+                  validator: _titleValidator,
                 ),
                 const SizedBox(height: 16),
 
@@ -343,12 +410,13 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 4,
+                  maxLength: maxDescriptionLength,
+                  textInputAction: TextInputAction.next,
                   decoration: uniInputDecoration(
                     hint: 'Describe what you are selling',
                     icon: Icons.description_outlined,
                   ),
-                  validator: (value) =>
-                      _requiredValidator(value, 'a description'),
+                  validator: _descriptionValidator,
                 ),
                 const SizedBox(height: 16),
 
@@ -360,11 +428,13 @@ class _CreateEditProductScreenState extends State<CreateEditProductScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _priceController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  inputFormatters: [
+                    ApostropheThousandsInputFormatter(),
+                  ],
                   decoration: uniInputDecoration(
-                    hint: 'Enter the selling price',
+                    hint: "1'000'000",
                     icon: Icons.attach_money_outlined,
                   ),
                   validator: _priceValidator,

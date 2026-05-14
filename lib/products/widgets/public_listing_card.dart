@@ -6,6 +6,7 @@ import '../../analytics/analytics.dart';
 import '../bloc/product_bloc.dart';
 import '../models/product_dto.dart';
 import '../screens/product_detail_screen.dart';
+import '../utils/price_formatter.dart';
 
 class PublicListingCard extends StatelessWidget {
   final ProductDto product;
@@ -108,7 +109,7 @@ class PublicListingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      '\$${product.price.toStringAsFixed(2)}',
+                      formatPriceWithApostrophes(product.price),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
