@@ -41,7 +41,36 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
-    final user = authState is AuthAuthenticated ? authState.user : null;
+
+    if (authState is AuthLoading || authState is AuthInitial) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (authState is! AuthAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+              (_) => false,
+        );
+      });
+
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final user = authState.user;
 
     final pages = <Widget>[
       const BrowseListingsScreen(),
