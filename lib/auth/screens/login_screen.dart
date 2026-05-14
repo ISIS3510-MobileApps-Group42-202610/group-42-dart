@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -16,29 +17,23 @@ class LoginScreen extends StatefulWidget {
 }
 
 class LoginScreenState extends State<LoginScreen> {
-  final formKey = GlobalKey<FormState>(); // validar formulario
-  final emailController = TextEditingController(); // controlador de email
-  final passwordController =
-  TextEditingController(); // controlador de contraseña
-  bool obscure = true; // ocultar contraseña por defecto
+  final formKey = GlobalKey<FormState>();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-  }
+  bool obscure = true;
+  bool hasNavigatedToHome = false;
 
   @override
   void dispose() {
-    // limpiar los controladores
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
   void submit() {
+    if (!(formKey.currentState?.validate() ?? false)) return;
 
-    // validar formulario y enviar peticion
-    if (!formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthLoginRequest(
         email: emailController.text.trim(),
@@ -47,32 +42,53 @@ class LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // El view como tal xd
+  void goToHome() {
+    if (!mounted || hasNavigatedToHome) return;
+
+    hasNavigatedToHome = true;
+
+    print('LOGIN SCREEN RECEIVED AUTHENTICATED, RETURNING TO AUTH GATE');
+
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/',
+          (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: BlocConsumer<AuthBloc, AuthState>(
+          listenWhen: (previous, current) {
+            return current is AuthAuthenticated ||
+                current is AuthError ||
+                current is AuthConnectionError;
+          },
           listener: (context, state) {
-            // Display el error como un snackbar
+            if (state is AuthAuthenticated) {
+              goToHome();
+              return;
+            }
+
             if (state is AuthError) {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.black,
-                    duration: const Duration(seconds: 4),
-                  )
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.black,
+                  duration: const Duration(seconds: 4),
+                ),
               );
             } else if (state is AuthConnectionError) {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.orange,
-                    duration: const Duration(seconds: 4),
-                  )
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 4),
+                ),
               );
             }
           },
@@ -89,14 +105,12 @@ class LoginScreenState extends State<LoginScreen> {
                   children: [
                     const SizedBox(height: 60),
 
-                    //Logo
                     const UniMarketHeader(
                       subtitle: 'Buy & sell within your university',
                     ),
 
                     const SizedBox(height: 48),
 
-                    // Email
                     fieldLabel('University Email'),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -107,23 +121,25 @@ class LoginScreenState extends State<LoginScreen> {
                         hint: 'you@university.edu',
                         icon: Icons.email_outlined,
                       ),
-                      validator: (v) {
-                        if (v == null || v
-                            .trim()
-                            .isEmpty) return 'Required';
-                        final parts = v.trim().split('@');
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Required';
+                        }
+
+                        final parts = value.trim().split('@');
+
                         if (parts.length != 2 ||
                             parts[0].isEmpty ||
                             !parts[1].contains('.')) {
                           return 'Enter a valid email address';
                         }
+
                         return null;
                       },
                     ),
 
                     const SizedBox(height: 20),
 
-                    // Contraseña
                     fieldLabel('Password'),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -142,23 +158,30 @@ class LoginScreenState extends State<LoginScreen> {
                             color: Colors.grey,
                             size: 20,
                           ),
-                          onPressed: () => setState(() => obscure = !obscure),
+                          onPressed: () {
+                            setState(() {
+                              obscure = !obscure;
+                            });
+                          },
                         ),
                       ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Required';
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+
                         return null;
                       },
                     ),
 
                     const SizedBox(height: 10),
 
-                    // Olvide la contraseña
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/reset-password'),
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/reset-password');
+                        },
                         child: const Text(
                           'Forgot password?',
                           style: TextStyle(
@@ -171,7 +194,6 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Iniciar sesión
                     ElevatedButton(
                       onPressed: canSubmit ? submit : null,
                       style: primaryButtonStyle(),
@@ -195,7 +217,6 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Divisor
                     Row(
                       children: [
                         const Expanded(child: Divider()),
@@ -212,7 +233,6 @@ class LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Registrarme
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -221,8 +241,9 @@ class LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(color: Colors.grey.shade600),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/register'),
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/register');
+                          },
                           child: const Text(
                             'Sign Up',
                             style: TextStyle(

@@ -108,9 +108,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                       duration: const Duration(seconds: 4),
                   )
               );
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/login',
+              Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+                '/',
                 (_) => false,
               );
             }

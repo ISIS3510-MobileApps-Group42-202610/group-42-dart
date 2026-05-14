@@ -77,7 +77,7 @@ Future<void> main() async {
     AnalyticsProviders(
       analyticsBaseUrl: 'https://group-42-analytic-engine-back.vercel.app',
       child: AuthProviders(
-        baseUrl: 'https://group-42-backend.vercel.app/api/v1/',
+        baseUrl: 'https://group-42-backend.vercel.app/api/v1',
         child: UniMarketApp(appStartTime: appStartTime),
       ),
     ),
@@ -118,59 +118,79 @@ class UniMarketAppState extends State<UniMarketApp> {
       ),
 
       // Cambio de estados con el bloc
-      home: BlocConsumer<AuthBloc, AuthState>(
-        // Solo reconstruir o escuchar en los estados relevantes para evitar loops o reconstrucciones innecesarias
-        buildWhen: (previous, current) =>
-            current is AuthInitial ||
-            current is AuthAuthenticated ||
-            current is AuthUnauthenticated ||
-            (current is AuthLoading && previous is AuthInitial),
-        listener: (context, state) {
-          if (state is AuthUnauthenticated && allowStartupTracking) {
-            setState(() => allowStartupTracking = false);
-          }
-        },
-        builder: (context, state) {
-          // Caregando
-          if (state is AuthInitial || state is AuthLoading) {
-            return const Scaffold(
-              backgroundColor: Colors.white,
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    UniMarketHeader(subtitle: 'Loading...'),
-                    SizedBox(height: 32),
-                    CircularProgressIndicator(color: AppColors.primaryBlue),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          // Autenticado, lleva al home
-          if (state is AuthAuthenticated) {
-            // si etsaba autenticado pre-startup, hacer el startup tracker
-            if (allowStartupTracking) {
-              return StartupTracker(
-                appStartTime: widget.appStartTime,
-                child: const HomeScreen(),
-              );
-            }
-            return const HomeScreen();
-          }
-
-          // No autenticado, lleva al login
-          return const LoginScreen();
-        },
-      ),
+      home: AuthGate(appStartTime: widget.appStartTime),
 
       routes: {
-        '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
         '/reset-password': (_) => const ResetPasswordScreen(),
         '/delete-account': (_) => const DeleteAccountScreen(),
-        '/home': (_) => const HomeScreen(),
+      },
+    );
+  }
+}
+
+class AuthGate extends StatefulWidget {
+  final DateTime appStartTime;
+
+  const AuthGate({
+    super.key,
+    required this.appStartTime,
+  });
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool allowStartupTracking = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<AuthBloc, AuthState>(
+      buildWhen: (previous, current) {
+        return current is AuthInitial ||
+            current is AuthLoading ||
+            current is AuthAuthenticated ||
+            current is AuthUnauthenticated ||
+            current is AuthError ||
+            current is AuthConnectionError;
+      },
+      listener: (context, state) {
+        if (state is AuthUnauthenticated && allowStartupTracking) {
+          setState(() {
+            allowStartupTracking = false;
+          });
+        }
+      },
+      builder: (context, state) {
+        if (state is AuthInitial || state is AuthLoading) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  UniMarketHeader(subtitle: 'Loading...'),
+                  SizedBox(height: 32),
+                  CircularProgressIndicator(color: AppColors.primaryBlue),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (state is AuthAuthenticated) {
+          if (allowStartupTracking) {
+            return StartupTracker(
+              appStartTime: widget.appStartTime,
+              child: const HomeScreen(),
+            );
+          }
+
+          return const HomeScreen();
+        }
+
+        return const LoginScreen();
       },
     );
   }

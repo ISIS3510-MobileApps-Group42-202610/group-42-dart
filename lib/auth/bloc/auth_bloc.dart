@@ -29,21 +29,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   // restaurar sesion usando isolate para descodificación eficiente en paralelo
   Future<void> onCheckSession(
-    AuthCheckSession event,
-    Emitter<AuthState> emit,
-  ) async {
+      AuthCheckSession event,
+      Emitter<AuthState> emit,
+      ) async {
+    if (state is AuthAuthenticated) return;
+
     emit(const AuthLoading());
+
     try {
       final user = await repository.tryRestoreSession();
+
+      // Evita que AuthCheckSession pise un login exitoso.
+      if (state is AuthAuthenticated) return;
+
       if (user != null) {
         final token = await repository.getToken();
-        // si el token es nulo, lanza error. se pone el ! para intentarlo
-        emit(AuthAuthenticated(user: user, accessToken: token!));
+
+        if (token != null) {
+          emit(AuthAuthenticated(user: user, accessToken: token));
+        } else {
+          emit(const AuthUnauthenticated());
+        }
       } else {
         emit(const AuthUnauthenticated());
       }
     } catch (e) {
-      emit(AuthError(message: "Error restoring session. Please log in again."));
+      if (state is AuthAuthenticated) return;
+
+      emit(const AuthUnauthenticated());
     }
   }
 
@@ -54,6 +67,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final response = await repository.login(
         LoginRequest(email: event.email, password: event.password),
       );
+      print('LOGIN SUCCESS USER: ${response.user.name} - ${response.user.email}');
+
       emit(
         AuthAuthenticated(
           user: response.user,
@@ -67,12 +82,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
-      emit(
-        AuthError(
-          message:
-              "There was an error during login. Please check your credentials and try again.",
-        ),
-      );
+      emit(AuthError(message: extractMessage(e)));
     }
   }
 
