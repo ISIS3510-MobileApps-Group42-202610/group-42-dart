@@ -52,6 +52,7 @@ class ProductDto extends Equatable {
   final String condition;
   final String? imageUrl;
   final String? sellerName;
+  final int? sellerId;
   final List<ProductImageDto> images; // nueva propiedad de images
 
   const ProductDto({
@@ -64,6 +65,7 @@ class ProductDto extends Equatable {
     required this.condition,
     this.imageUrl,
     this.sellerName,
+    this.sellerId,
     this.images = const [], // nueva propiedad de images
   });
 
@@ -92,6 +94,7 @@ class ProductDto extends Equatable {
     String? condition,
     String? imageUrl,
     String? sellerName,
+    int? sellerId,
     List<ProductImageDto>? images, // imagesss
   }) {
     return ProductDto(
@@ -104,6 +107,7 @@ class ProductDto extends Equatable {
       condition: condition ?? this.condition,
       imageUrl: imageUrl ?? this.imageUrl,
       sellerName: sellerName ?? this.sellerName,
+      sellerId: sellerId ?? this.sellerId,
       images: images ?? this.images, // imagess xd
     );
   }
@@ -129,6 +133,7 @@ class ProductDto extends Equatable {
     }
 
     String? resolvedSellerName;
+    int? resolvedSellerId;
     final seller = json['seller'];
     final sellerJson = asStringDynamicMap(seller);
     if (sellerJson != null) {
@@ -139,6 +144,7 @@ class ProductDto extends Equatable {
         final lastName = (userJson['last_name'] ?? '').toString().trim();
         final fullName = '$name $lastName'.trim();
         resolvedSellerName = fullName.isEmpty ? null : fullName;
+        resolvedSellerId = (sellerJson['id'] as num?)?.toInt();
       }
     }
 
@@ -155,6 +161,7 @@ class ProductDto extends Equatable {
       condition: (json['condition'] ?? 'good').toString(),
       imageUrl: json['image_url'] as String? ?? resolvedImageUrl,
       sellerName: resolvedSellerName,
+      sellerId: resolvedSellerId ?? (json['seller_id'] as num?)?.toInt(),
       images: parsedImages, // imagesss
     );
   }
@@ -171,6 +178,7 @@ class ProductDto extends Equatable {
       'image_url': imageUrl,
       // agregar el seller
       'seller_name': sellerName,
+      'seller_id': sellerId,
       'images': images.map((image) => image.toJson()).toList(),
     };
   }
@@ -186,6 +194,7 @@ class ProductDto extends Equatable {
     condition,
     imageUrl,
     sellerName,
+    sellerId,
     images, // imagess
   ];
 }
