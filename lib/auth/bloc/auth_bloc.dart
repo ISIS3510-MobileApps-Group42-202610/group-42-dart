@@ -13,7 +13,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc({required AuthRepository repositoryTemp})
     : repository = repositoryTemp,
-      super(const AuthInitial()) {
+      super(const AuthUnauthenticated()) {
     on<AuthCheckSession>(onCheckSession);
     on<AuthLoginRequest>(onLogin);
     on<AuthRegisterRequest>(onRegister);
@@ -32,50 +32,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       AuthCheckSession event,
       Emitter<AuthState> emit,
       ) async {
-    print('[AUTH_BLOC] onCheckSession started');
-
-    if (state is AuthAuthenticated) {
-      print('[AUTH_BLOC] onCheckSession ignored because already authenticated');
-      return;
-    }
-
-    emit(const AuthLoading());
-
-    try {
-      final user = await repository.tryRestoreSession();
-
-      if (state is AuthAuthenticated) {
-        print('[AUTH_BLOC] onCheckSession stopped after restore because login already authenticated');
-        return;
-      }
-
-      if (user != null) {
-        final token = await repository.getToken();
-
-        if (state is AuthAuthenticated) {
-          print('[AUTH_BLOC] onCheckSession stopped after getToken because login already authenticated');
-          return;
-        }
-
-        if (token != null) {
-          emit(AuthAuthenticated(user: user, accessToken: token));
-        } else {
-          print('[AUTH_BLOC] emitting AuthUnauthenticated because token null');
-          emit(const AuthUnauthenticated());
-        }
-      } else {
-        print('[AUTH_BLOC] emitting AuthUnauthenticated because user null');
-        emit(const AuthUnauthenticated());
-      }
-    } catch (e) {
-      if (state is AuthAuthenticated) {
-        print('[AUTH_BLOC] onCheckSession catch ignored because already authenticated');
-        return;
-      }
-
-      print('[AUTH_BLOC] emitting AuthUnauthenticated from onCheckSession catch: $e');
-      emit(const AuthUnauthenticated());
-    }
+    print('[AUTH_BLOC] onCheckSession disabled');
+    await repository.logout();
+    emit(const AuthUnauthenticated());
   }
 
   // login
@@ -93,7 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       print('[AUTH_BLOC] repository.login success');
       print('[AUTH_BLOC] user: ${response.user.email}');
-      print('[AUTH_BLOC] token empty?: ${response.accessToken.isEmpty}');
+      print('[AUTH_BLOC] TOKEN PARA SEED: ${response.accessToken}');
 
       emit(
         AuthAuthenticated(
