@@ -1,4 +1,4 @@
-// estados utilizados en el bloc
+/// estados utilizados en el bloc
 
 import 'package:equatable/equatable.dart';
 import '../models/auth_models.dart';
@@ -24,11 +24,16 @@ class AuthLoading extends AuthState {
 class AuthAuthenticated extends AuthState {
   final AuthUser user;
   final String accessToken;
+  final DateTime authenticatedAt;
 
-  const AuthAuthenticated({required this.user, required this.accessToken});
+  AuthAuthenticated({
+    required this.user,
+    required this.accessToken,
+    DateTime? authenticatedAt,
+  }) : authenticatedAt = authenticatedAt ?? DateTime.now();
 
   @override
-  List<Object> get props => [user, accessToken];
+  List<Object> get props => [user, accessToken, authenticatedAt];
 }
 
 // no hay token

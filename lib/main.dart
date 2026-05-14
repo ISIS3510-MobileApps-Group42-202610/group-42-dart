@@ -148,8 +148,11 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
       buildWhen: (previous, current) {
+        // No reconstruir para AuthLoading si ya estamos en una pantalla activa
+        // Esto evita destruir el LoginScreen mientras procesa el login
+        if (current is AuthLoading) return false;
+
         return current is AuthInitial ||
-            current is AuthLoading ||
             current is AuthAuthenticated ||
             current is AuthUnauthenticated ||
             current is AuthError ||
