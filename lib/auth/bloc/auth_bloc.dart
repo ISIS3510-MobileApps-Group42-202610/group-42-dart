@@ -32,42 +32,68 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       AuthCheckSession event,
       Emitter<AuthState> emit,
       ) async {
-    if (state is AuthAuthenticated) return;
+    print('[AUTH_BLOC] onCheckSession started');
+
+    if (state is AuthAuthenticated) {
+      print('[AUTH_BLOC] onCheckSession ignored because already authenticated');
+      return;
+    }
 
     emit(const AuthLoading());
 
     try {
       final user = await repository.tryRestoreSession();
 
-      // Evita que AuthCheckSession pise un login exitoso.
-      if (state is AuthAuthenticated) return;
+      if (state is AuthAuthenticated) {
+        print('[AUTH_BLOC] onCheckSession stopped after restore because login already authenticated');
+        return;
+      }
 
       if (user != null) {
         final token = await repository.getToken();
 
+        if (state is AuthAuthenticated) {
+          print('[AUTH_BLOC] onCheckSession stopped after getToken because login already authenticated');
+          return;
+        }
+
         if (token != null) {
           emit(AuthAuthenticated(user: user, accessToken: token));
         } else {
+          print('[AUTH_BLOC] emitting AuthUnauthenticated because token null');
           emit(const AuthUnauthenticated());
         }
       } else {
+        print('[AUTH_BLOC] emitting AuthUnauthenticated because user null');
         emit(const AuthUnauthenticated());
       }
     } catch (e) {
-      if (state is AuthAuthenticated) return;
+      if (state is AuthAuthenticated) {
+        print('[AUTH_BLOC] onCheckSession catch ignored because already authenticated');
+        return;
+      }
 
+      print('[AUTH_BLOC] emitting AuthUnauthenticated from onCheckSession catch: $e');
       emit(const AuthUnauthenticated());
     }
   }
 
   // login
   Future<void> onLogin(AuthLoginRequest event, Emitter<AuthState> emit) async {
+    print('[AUTH_BLOC] onLogin started');
     emit(const AuthLoading());
+    print('[AUTH_BLOC] emitted AuthLoading');
+
     try {
+      print('[AUTH_BLOC] calling repository.login');
+
       final response = await repository.login(
         LoginRequest(email: event.email, password: event.password),
       );
-      print('LOGIN SUCCESS USER: ${response.user.name} - ${response.user.email}');
+
+      print('[AUTH_BLOC] repository.login success');
+      print('[AUTH_BLOC] user: ${response.user.email}');
+      print('[AUTH_BLOC] token empty?: ${response.accessToken.isEmpty}');
 
       emit(
         AuthAuthenticated(
@@ -75,13 +101,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: response.accessToken,
         ),
       );
-    } on ConnectionError {
+
+      print('[AUTH_BLOC] emitted AuthAuthenticated');
+    } on ConnectionError catch (e) {
+      print('[AUTH_BLOC] ConnectionError: $e');
       emit(
         const AuthConnectionError(
           message: 'No internet connection. Please try again later.',
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      print('[AUTH_BLOC] login error: $e');
+      print('[AUTH_BLOC] stack: $st');
       emit(AuthError(message: extractMessage(e)));
     }
   }
@@ -137,10 +168,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   // logout
   Future<void> onLogout(
-    AuthLogoutRequest event,
-    Emitter<AuthState> emit,
-  ) async {
+      AuthLogoutRequest event,
+      Emitter<AuthState> emit,
+      ) async {
+    print('[AUTH_BLOC] onLogout called');
     await repository.logout();
+    print('[AUTH_BLOC] emitting AuthUnauthenticated from onLogout');
     emit(const AuthUnauthenticated());
   }
 

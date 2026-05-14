@@ -31,8 +31,14 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   void submit() {
-    if (!(formKey.currentState?.validate() ?? false)) return;
+    print('[LOGIN_SCREEN] submit() called');
 
+    final valid = formKey.currentState?.validate() ?? false;
+    print('[LOGIN_SCREEN] form valid: $valid');
+
+    if (!valid) return;
+
+    print('[LOGIN_SCREEN] dispatching AuthLoginRequest');
     context.read<AuthBloc>().add(
       AuthLoginRequest(
         email: emailController.text.trim(),
