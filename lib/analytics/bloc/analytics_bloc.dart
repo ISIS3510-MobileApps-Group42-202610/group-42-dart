@@ -6,6 +6,8 @@ import '../models/analytics_models.dart';
 import 'analytics_event.dart';
 import 'analytics_state.dart';
 import '../data/device_info_service.dart';
+import 'package:dio/dio.dart';
+
 
 class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   final AnalyticsRepository repository;
@@ -24,14 +26,85 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
     on<TrackCrashEvent>(onTrackCrashEvent);
     on<TrackBusinessEvent>((event, emit) async {
       try {
+        final normalizedEventName = event.eventName.trim();
+
+        final allowedEvents = {
+          'listing_viewed',
+          'listing_opened',
+          'view_listing',
+          'product_viewed',
+          'chat_started',
+          'chat_opened',
+          'conversation_started',
+          'first_message_sent',
+          'message_sent',
+          'transaction_completed',
+          'sale_completed',
+          'purchase_completed',
+          'listing_sold',
+          'product_sold',
+        };
+
+        if (!allowedEvents.contains(normalizedEventName)) {
+          print(
+            'Business analytics skipped: invalid event_name=$normalizedEventName',
+          );
+          emit(const AnalyticsIdle());
+          return;
+        }
+
+        final parsedListingId = int.tryParse(event.listingId.trim());
+
+        if (parsedListingId == null || parsedListingId <= 0) {
+          print(
+            'Business analytics skipped: invalid listingId=${event.listingId}, '
+                'eventName=$normalizedEventName',
+          );
+          emit(const AnalyticsIdle());
+          return;
+        }
+
+        if (normalizedEventName == 'first_message_sent') {
+          if (event.buyerUserId == null || event.sellerUserId == null) {
+            print(
+              'Business analytics skipped: first_message_sent requires '
+                  'buyerUserId and sellerUserId.',
+            );
+            emit(const AnalyticsIdle());
+            return;
+          }
+
+          if (event.buyerUserId == event.sellerUserId) {
+            print(
+              'Business analytics skipped: buyerUserId and sellerUserId '
+                  'cannot be the same.',
+            );
+            emit(const AnalyticsIdle());
+            return;
+          }
+        }
+
         await repository.sendBusinessEvent(
-          eventName: event.eventName,
-          listingId: event.listingId,
+          eventName: normalizedEventName,
+          listingId: parsedListingId.toString(),
+          buyerUserId: event.buyerUserId,
+          sellerUserId: event.sellerUserId,
           metadata: event.metadata,
         );
+
+        emit(const AnalyticsIdle());
       } catch (e) {
-        print('BQ6 ERROR: $e');
-        emit(AnalyticsError(message: e.toString()));
+        if (e is DioException) {
+          print(
+            'Business analytics event failed but app continues. '
+                'Status: ${e.response?.statusCode}. '
+                'Data: ${e.response?.data}',
+          );
+        } else {
+          print('Business analytics event failed but app continues: $e');
+        }
+
+        emit(const AnalyticsIdle());
       }
     });
   }
@@ -119,7 +192,8 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
 
       emit(const AnalyticsIdle());
     } catch (e) {
-      emit(AnalyticsError(message: e.toString()));
+      print('BQ6 analytics event failed but app continues: $e');
+      emit(const AnalyticsIdle());
     }
   }
 }

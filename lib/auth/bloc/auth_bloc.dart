@@ -1,4 +1,4 @@
-// el mismisimo business logic component de autenticacion
+// el mismo business logic component de autenticacion
 
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -220,8 +220,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(
         AuthError(
-          message:
-              "Error deleting account. Please check your password and try again.",
+          message: extractMessage(e),
         ),
       );
     }
@@ -235,9 +234,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final data = response.data;
 
         if (data is Map<String, dynamic>) {
-          final msg = data['message'];
+          final msg = data['message'] ?? data['error'];
           if (msg is List) return msg.join('\n');
-          if (msg is String) return msg;
+          if (msg is String && msg.isNotEmpty) return msg;
+          return data.toString();
         }
 
         if (data is String && data.isNotEmpty) return data;

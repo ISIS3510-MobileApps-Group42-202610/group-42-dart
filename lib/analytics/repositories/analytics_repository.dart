@@ -55,11 +55,15 @@ class AnalyticsRepository {
   Future<void> sendBusinessEvent({
     required String eventName,
     required String listingId,
+    int? buyerUserId,
+    int? sellerUserId,
     Map<String, dynamic>? metadata,
   }) async {
     await apiClient.sendBusinessEvent(
       eventName: eventName,
       listingId: listingId,
+      buyerUserId: buyerUserId,
+      sellerUserId: sellerUserId,
       metadata: metadata,
     );
   }

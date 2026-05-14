@@ -38,16 +38,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     try {
       final publicProducts = await repository.getPublicListings();
 
-      // BQ12
-      print("BQ12 EVENT SENT: listings_viewed - count: ${publicProducts.length}");
-      analyticsBloc.add(
-        TrackBusinessEvent(
-          eventName: 'listings_viewed',
-          metadata: {
-            "total_listings": publicProducts.length,
-          }, listingId: '',
-        ),
-      );
       emit(
         ProductLoaded(
           myProducts: state.myProducts,
@@ -174,18 +164,25 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       await repository.buyProduct(event.productId);
 
       // TRACKING BQ9
-      print("Send transaction_completed for ${event.productId}");
-      analyticsBloc.add(
-        TrackBusinessEvent(
-          eventName: 'transaction_completed',
-          listingId: event.productId,
-          buyerUserId: 1, 
-          metadata: {
-            "price": product?.price ?? 0,
-            "category": product?.category ?? "unknown",
-          },
-        ),
-      );
+      final parsedProductId = int.tryParse(event.productId);
+
+      if (parsedProductId != null && parsedProductId > 0) {
+        print("Send transaction_completed for ${event.productId}");
+        analyticsBloc.add(
+          TrackBusinessEvent(
+            eventName: 'transaction_completed',
+            listingId: event.productId,
+            metadata: {
+              "price": product?.price ?? 0,
+              "category": product?.category ?? "unknown",
+            },
+          ),
+        );
+      } else {
+        print(
+          "Business analytics skipped: invalid productId=${event.productId}",
+        );
+      }
 
       try {
         await repository.markProductAsSold(event.productId);
