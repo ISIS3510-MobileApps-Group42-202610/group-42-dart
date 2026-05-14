@@ -145,6 +145,8 @@ class ProductDetailScreen extends StatelessWidget {
                             productId: product.id,
                             sellerName: sellerName,
                             productName: title,
+                            sellerId: product.sellerId,
+                            mode: ChatMode.buyer,
                           ),
                         ),
                       );
