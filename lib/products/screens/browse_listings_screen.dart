@@ -165,23 +165,23 @@ class _BrowseListingsScreenState
                     ProductState>(
                   builder: (context, state) {
                     final authState = context.read<AuthBloc>().state;
-                    final currentUserName = authState is AuthAuthenticated
-                        ? '${authState.user.name} ${authState.user.lastName}'.trim()
+
+                    final currentSellerId =
+                    authState is AuthAuthenticated
+                        ? authState.user.sellerId
                         : null;
 
-                    final activeListings = state.publicProducts
-                        .where((p) {
+                    final activeListings = state.publicProducts.where((p) {
                       if (!p.active) return false;
 
-                      if (currentUserName != null &&
-                          p.sellerName != null &&
-                          p.sellerName!.trim().toLowerCase() == currentUserName.toLowerCase()) {
+                      if (currentSellerId != null &&
+                          p.sellerId != null &&
+                          p.sellerId == currentSellerId) {
                         return false;
                       }
 
                       return true;
-                    })
-                        .toList();
+                    }).toList();
                     final rankedActive =
                     _smartService.rankListings(
                       listings: activeListings,
