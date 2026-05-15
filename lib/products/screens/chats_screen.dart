@@ -54,8 +54,15 @@ class _ChatsScreenState extends State<ChatsScreen> {
     try {
       final dio = getDio();
 
+      final authState = context.read<AuthBloc>().state;
+      final isSeller = authState is AuthAuthenticated && authState.user.isSeller;
+
       final buyerResponse = await dio.get('/messages/as-buyer');
-      final sellerResponse = await dio.get('/messages/as-seller');
+      Response? sellerResponse;
+
+      if (isSeller) {
+        sellerResponse = await dio.get('/messages/as-seller');
+      }
 
       final loaded = <Map<String, dynamic>>[];
 
@@ -70,12 +77,16 @@ class _ChatsScreenState extends State<ChatsScreen> {
             final sellerUser = sellerMap['user'];
 
             String sellerName = 'Seller';
+            String? sellerProfilePic;
 
             if (sellerUser is Map) {
               final userMap = Map<String, dynamic>.from(sellerUser);
               final name = (userMap['name'] ?? '').toString();
               final lastName = (userMap['last_name'] ?? '').toString();
+
               sellerName = '$name $lastName'.trim();
+              sellerProfilePic = userMap['profile_pic']?.toString();
+
               if (sellerName.isEmpty) sellerName = 'Seller';
             }
 
@@ -84,6 +95,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
               'sellerId': (sellerMap['id'] as num?)?.toInt() ?? 0,
               'buyerId': null,
               'otherName': sellerName,
+              'otherProfilePic': sellerProfilePic,
               'lastMessage': (message['content'] ?? '').toString(),
               'sentAt': (message['sent_at'] ?? '').toString(),
             });
@@ -91,19 +103,23 @@ class _ChatsScreenState extends State<ChatsScreen> {
         }
       }
 
-      final sellerData = sellerResponse.data;
+      final sellerData = sellerResponse?.data;
       if (sellerData is List) {
         for (final item in sellerData) {
           final message = Map<String, dynamic>.from(item as Map);
           final buyer = message['buyer'];
 
           String buyerName = 'Buyer';
+          String? buyerProfilePic;
 
           if (buyer is Map) {
             final buyerMap = Map<String, dynamic>.from(buyer);
             final name = (buyerMap['name'] ?? '').toString();
             final lastName = (buyerMap['last_name'] ?? '').toString();
+
             buyerName = '$name $lastName'.trim();
+            buyerProfilePic = buyerMap['profile_pic']?.toString();
+
             if (buyerName.isEmpty) {
               buyerName = (buyerMap['email'] ?? 'Buyer').toString();
             }
@@ -114,6 +130,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
             'sellerId': null,
             'buyerId': (message['buyer_id'] as num?)?.toInt() ?? 0,
             'otherName': buyerName,
+            'otherProfilePic': buyerProfilePic,
             'lastMessage': (message['content'] ?? '').toString(),
             'sentAt': (message['sent_at'] ?? '').toString(),
           });
@@ -126,6 +143,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
         final role = chat['role'].toString();
         final sellerId = chat['sellerId'];
         final buyerId = chat['buyerId'];
+
         final key = role == 'buyer'
             ? 'buyer_seller_$sellerId'
             : 'seller_buyer_$buyerId';
@@ -168,6 +186,24 @@ class _ChatsScreenState extends State<ChatsScreen> {
     } catch (_) {
       return '';
     }
+  }
+
+  Widget buildProfileAvatar({
+    required String? profilePic,
+    required String role,
+  }) {
+    final hasProfilePic = profilePic != null && profilePic.isNotEmpty;
+
+    return CircleAvatar(
+      backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+      backgroundImage: hasProfilePic ? NetworkImage(profilePic) : null,
+      child: hasProfilePic
+          ? null
+          : Icon(
+        role == 'seller' ? Icons.person : Icons.storefront,
+        color: AppColors.primaryBlue,
+      ),
+    );
   }
 
   @override
@@ -223,21 +259,18 @@ class _ChatsScreenState extends State<ChatsScreen> {
           ),
           itemBuilder: (context, index) {
             final chat = conversations[index];
+
             final role = chat['role'].toString();
             final otherName = chat['otherName'].toString();
+            final otherProfilePic =
+            chat['otherProfilePic']?.toString();
             final lastMessage = chat['lastMessage'].toString();
             final sentAt = chat['sentAt'].toString();
 
             return ListTile(
-              leading: CircleAvatar(
-                backgroundColor:
-                AppColors.primaryBlue.withOpacity(0.1),
-                child: Icon(
-                  role == 'seller'
-                      ? Icons.storefront
-                      : Icons.person,
-                  color: AppColors.primaryBlue,
-                ),
+              leading: buildProfileAvatar(
+                profilePic: otherProfilePic,
+                role: role,
               ),
               title: Text(
                 otherName,
