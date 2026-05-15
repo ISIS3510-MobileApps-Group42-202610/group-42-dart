@@ -21,6 +21,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthForgotPasswordRequest>(onForgotPassword);
     on<AuthResetPasswordRequest>(onResetPassword);
     on<AuthDeleteAccountRequest>(onDeleteAccount);
+    on<AuthUpdateProfilePictureRequest>(onUpdateProfilePicture);
   }
 
   // ============================================================================
@@ -163,6 +164,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
               "There was an error processing your request. Please try again.",
         ),
       );
+    }
+  }
+
+  Future<void> onUpdateProfilePicture(
+      AuthUpdateProfilePictureRequest event,
+      Emitter<AuthState> emit,
+      ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    emit(const AuthLoading());
+
+    try {
+      final updatedUser = await repository.updateProfilePicture(
+        event.profileImageFile,
+      );
+
+      emit(
+        AuthAuthenticated(
+          user: updatedUser,
+          accessToken: currentState.accessToken,
+        ),
+      );
+    } on ConnectionError {
+      emit(
+        const AuthConnectionError(
+          message: 'No internet connection. Please try again later.',
+        ),
+      );
+    } catch (e) {
+      emit(AuthError(message: extractMessage(e)));
+      emit(currentState);
     }
   }
 

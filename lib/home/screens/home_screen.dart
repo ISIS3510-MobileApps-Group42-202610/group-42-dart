@@ -11,8 +11,7 @@ import '../../products/screens/browse_listings_screen.dart';
 import '../../products/screens/seller_products_screen.dart';
 import '../../theme/app_theme.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -106,7 +105,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     final pages = <Widget>[
       const BrowseListingsScreen(),
       const ChatsScreen(),
-      if (user.isSeller) const SellerProductsScreen(),
+      const SellerProductsScreen(),
       _ProfileTab(user: user),
     ];
 
@@ -142,24 +141,23 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
               }
             });
           },
-          destinations: [
-            const NavigationDestination(
+          destinations: const [
+            NavigationDestination(
               icon: Icon(Icons.search_outlined),
               selectedIcon: Icon(Icons.search),
               label: 'Search',
             ),
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.chat_outlined),
               selectedIcon: Icon(Icons.chat),
               label: 'Chats',
             ),
-            if (user.isSeller)
-              const NavigationDestination(
-                icon: Icon(Icons.sell_outlined),
-                selectedIcon: Icon(Icons.sell),
-                label: 'My listings',
-              ),
-            const NavigationDestination(
+            NavigationDestination(
+              icon: Icon(Icons.sell_outlined),
+              selectedIcon: Icon(Icons.sell),
+              label: 'My listings',
+            ),
+            NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
               label: 'Profile',
@@ -201,27 +199,6 @@ class _ProfileTab extends StatelessWidget {
                   color: AppColors.primaryBlue,
                 )
                     : null,
-              ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Change profile picture'),
-                onPressed: () async {
-                  final picker = ImagePicker();
-
-                  final pickedFile = await picker.pickImage(
-                    source: ImageSource.gallery,
-                    imageQuality: 80,
-                  );
-
-                  if (pickedFile == null) return;
-
-                  context.read<AuthBloc>().add(
-                    AuthUpdateProfilePictureRequest(
-                      profileImageFile: File(pickedFile.path),
-                    ),
-                  );
-                },
               ),
               const SizedBox(height: 12),
               Text(
