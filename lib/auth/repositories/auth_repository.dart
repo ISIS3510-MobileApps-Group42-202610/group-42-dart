@@ -114,6 +114,19 @@ class AuthRepository {
     return api.uploadProfileImageToCloudinary(imageFile);
   }
 
+  Future<AuthUser> updateProfilePicture(File imageFile) async {
+    final isOnline = await connectivityService.isConnected;
+    if (!isOnline) {
+      throw ConnectionError('No internet connection. Please try again later');
+    }
+
+    final imageUrl = await api.uploadProfileImageToCloudinary(imageFile);
+    final updatedUser = await api.updateProfilePicture(imageUrl);
+    await storage.saveUser(updatedUser);
+
+    return updatedUser;
+  }
+
 }
 
 // Excepción personalizada para errores de conexión
