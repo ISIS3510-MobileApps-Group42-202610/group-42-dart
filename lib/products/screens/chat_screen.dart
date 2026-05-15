@@ -1,11 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 
+import '../../analytics/analytics.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../theme/app_theme.dart';
-import '../../analytics/analytics.dart';
 
 enum ChatMode { buyer, seller }
 
@@ -40,6 +43,137 @@ class ChatScreenState extends State<ChatScreen> {
   bool sending = false;
   bool firstMessageSent = false;
 
+  String? nearbyBuilding;
+  String? locationStatusMessage;
+  bool loadingLocation = false;
+
+  final List<Map<String, dynamic>> universityBuildings = const [
+    {'name': 'Mario Laserna (ML)', 'lat': 4.60320, 'lng': -74.06530},
+    {'name': 'Edificio W', 'lat': 4.60250, 'lng': -74.06620},
+    {'name': 'Edificio SD', 'lat': 4.60450, 'lng': -74.06580},
+    {'name': 'Edificio RGD', 'lat': 4.60400, 'lng': -74.06550},
+    {'name': 'Centro Deportivo', 'lat': 4.60550, 'lng': -74.06500},
+    {'name': 'Edificio C', 'lat': 4.60300, 'lng': -74.06600},
+    {'name': 'Edificio Q', 'lat': 4.60350, 'lng': -74.06560},
+    {'name': 'Edificio O', 'lat': 4.60280, 'lng': -74.06570},
+    {'name': 'Edificio B', 'lat': 4.60220, 'lng': -74.06610},
+    {'name': 'Edificio Aulas', 'lat': 4.60380, 'lng': -74.06540},
+    {'name': 'Edificio Au', 'lat': 4.60500, 'lng': -74.06480},
+    {'name': 'Biblioteca General', 'lat': 4.60200, 'lng': -74.06640},
+    {'name': 'Edificio Cívico', 'lat': 4.60230, 'lng': -74.06680},
+    {'name': 'Edificio Franco', 'lat': 4.60420, 'lng': -74.06520},
+    {'name': 'Edificio Lleras', 'lat': 4.60310, 'lng': -74.06580},
+  ];
+
+  double _toRad(double value) => value * math.pi / 180;
+
+  double haversine(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371000.0;
+
+    final dLat = _toRad(lat2 - lat1);
+    final dLng = _toRad(lng2 - lng1);
+
+    final a = math.pow(math.sin(dLat / 2), 2) +
+        math.cos(_toRad(lat1)) *
+            math.cos(_toRad(lat2)) *
+            math.pow(math.sin(dLng / 2), 2);
+
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
+  Future<void> loadNearbyBuilding() async {
+    setState(() {
+      loadingLocation = true;
+      nearbyBuilding = null;
+      locationStatusMessage = null;
+    });
+
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!enabled) {
+        locationStatusMessage = 'Location services are disabled.';
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        locationStatusMessage = 'Location permission was denied.';
+        return;
+      }
+
+      Position? position;
+
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 8),
+        );
+      } catch (_) {
+        position = await Geolocator.getLastKnownPosition();
+      }
+
+      if (position == null) {
+        locationStatusMessage = 'Could not get your location.';
+        return;
+      }
+
+      final candidates = universityBuildings
+          .map((building) {
+        final distance = haversine(
+          position!.latitude,
+          position.longitude,
+          building['lat'] as double,
+          building['lng'] as double,
+        );
+
+        return {
+          ...building,
+          'distance': distance,
+        };
+      })
+          .where((building) => (building['distance'] as double) <= 120)
+          .toList()
+        ..sort(
+              (a, b) => (a['distance'] as double).compareTo(
+            b['distance'] as double,
+          ),
+        );
+
+      if (candidates.isNotEmpty) {
+        nearbyBuilding = candidates.first['name'].toString();
+      } else {
+        final campusDistance = haversine(
+          position.latitude,
+          position.longitude,
+          4.6040,
+          -74.0658,
+        );
+
+        if (campusDistance <= 300) {
+          nearbyBuilding = 'Uniandes Campus';
+        } else {
+          locationStatusMessage =
+          'You are not close enough to campus to suggest a meeting point.';
+        }
+      }
+    } catch (e) {
+      locationStatusMessage = 'Could not check location: $e';
+    } finally {
+      if (mounted) {
+        setState(() {
+          loadingLocation = false;
+        });
+      }
+    }
+  }
+
   Dio getDio() {
     final authState = context.read<AuthBloc>().state;
 
@@ -66,7 +200,9 @@ class ChatScreenState extends State<ChatScreen> {
           return handler.next(options);
         },
         onError: (error, handler) {
-          print('[CHAT_DIO] ERROR ${error.requestOptions.method} ${error.requestOptions.path}');
+          print(
+            '[CHAT_DIO] ERROR ${error.requestOptions.method} ${error.requestOptions.path}',
+          );
           print('[CHAT_DIO] status: ${error.response?.statusCode}');
           print('[CHAT_DIO] response: ${error.response?.data}');
           return handler.next(error);
@@ -80,8 +216,10 @@ class ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       loadMessages();
+      loadNearbyBuilding();
     });
   }
 
@@ -139,6 +277,7 @@ class ChatScreenState extends State<ChatScreen> {
 
   Future<void> sendMessage() async {
     final text = controller.text.trim();
+
     if (text.isEmpty || sending) return;
 
     setState(() {
@@ -266,6 +405,69 @@ class ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget locationBanner() {
+    if (!loadingLocation && nearbyBuilding == null && locationStatusMessage == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: loadingLocation
+          ? const Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text('Checking your nearby campus location...'),
+          ),
+        ],
+      )
+          : nearbyBuilding != null
+          ? Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'You are near $nearbyBuilding',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.labelDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Suggested meeting point: $nearbyBuilding lobby',
+            style: TextStyle(color: Colors.grey.shade700),
+          ),
+        ],
+      )
+          : Row(
+        children: [
+          const Icon(Icons.location_off_outlined),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              locationStatusMessage ?? 'Location unavailable.',
+            ),
+          ),
+          TextButton(
+            onPressed: loadNearbyBuilding,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     controller.dispose();
@@ -275,9 +477,7 @@ class ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.productName.trim().isEmpty
-        ? 'Chat'
-        : widget.productName;
+    final title = widget.productName.trim().isEmpty ? 'Chat' : widget.productName;
 
     final subtitle = widget.mode == ChatMode.seller
         ? 'Buyer: ${widget.sellerName}'
@@ -301,6 +501,10 @@ class ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
+            onPressed: loadNearbyBuilding,
+            icon: const Icon(Icons.location_on_outlined),
+          ),
+          IconButton(
             onPressed: loadMessages,
             icon: const Icon(Icons.refresh),
           ),
@@ -308,6 +512,7 @@ class ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          locationBanner(),
           Expanded(
             child: loading
                 ? const Center(child: CircularProgressIndicator())
