@@ -62,6 +62,18 @@ class AuthApiClient {
     throw Exception('Invalid cloudinary signature response.');
   }
 
+  Future<AuthUser> updateProfilePicture(String profilePicUrl) async {
+    final response = await dio.patch(
+      '/auth/account',
+      data: {'profile_pic': profilePicUrl},
+    );
+
+    final data = response.data as Map<String, dynamic>;
+    return AuthUser.fromJson(
+      data['user'] as Map<String, dynamic>? ?? data,
+    );
+  }
+
   Future<String> uploadProfileImageToCloudinary(File imageFile) async {
     final sig = await getCloudinarySignature(
       folder: 'unimarket/profile_pictures',

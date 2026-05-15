@@ -41,6 +41,7 @@ Future<SessionData> loadSessionOnIsolate(
   return SessionData(token: token, user: user);
 }
 
+
 class TokenStorage {
   static const tokenKey = 'access_token';
   static const userKey = 'auth_user';
@@ -54,6 +55,13 @@ class TokenStorage {
       storage.write(key: tokenKey, value: auth.accessToken),
       storage.write(key: userKey, value: jsonEncode(auth.user.toJson())),
     ]);
+  }
+
+  Future<void> saveUser(AuthUser user) async {
+    await storage.write(
+      key: userKey,
+      value: jsonEncode(user.toJson()),
+    );
   }
 
   Future<String?> getToken() => storage.read(key: tokenKey);

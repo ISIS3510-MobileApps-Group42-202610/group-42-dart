@@ -59,6 +59,14 @@ class AuthRegisterRequest extends AuthEvent {
   ];
 }
 
+class AuthUpdateProfilePictureRequest extends AuthEvent {
+  final File profileImageFile;
+
+  const AuthUpdateProfilePictureRequest({required this.profileImageFile});
+
+  @override
+  List<Object?> get props => [profileImageFile.path];
+}
 
 // sign oput event
 class AuthLogoutRequest extends AuthEvent {
