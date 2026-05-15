@@ -84,6 +84,7 @@ class AuthUser {
   final int? semester;
   final String? profilePic;
   final bool isSeller;
+  final int? sellerId;
 
   // se instancia el objeto
   const AuthUser({
@@ -94,20 +95,36 @@ class AuthUser {
     this.semester,
     this.profilePic,
     required this.isSeller,
+    this.sellerId,
   });
 
   // el factory es para que devuelva un objeto de la clase AuthUser
-  factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-    id: (json['id'] as num).toInt(),
-    name: json['name'] as String? ?? '',
-    lastName: json['last_name'] as String? ?? '',
-    email: json['email'] as String? ?? '',
-    semester: json['semester'] is num
-        ? (json['semester'] as num).toInt()
-        : null,
-    profilePic: json['profile_pic'] as String?,
-    isSeller: json['is_seller'] as bool? ?? false,
-  );
+  factory AuthUser.fromJson(Map<String, dynamic> json) {
+    int? extractedSellerId;
+
+    final seller = json['seller'];
+
+    if (seller is Map<String, dynamic>) {
+      final sellerIdValue = seller['id'];
+
+      if (sellerIdValue is num) {
+        extractedSellerId = sellerIdValue.toInt();
+      }
+    }
+
+    return AuthUser(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String? ?? '',
+      lastName: json['last_name'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      semester: json['semester'] is num
+          ? (json['semester'] as num).toInt()
+          : null,
+      profilePic: json['profile_pic'] as String?,
+      isSeller: json['is_seller'] as bool? ?? false,
+      sellerId: extractedSellerId,
+    );
+  }
 
   // se mappea el objeto a un json
   Map<String, dynamic> toJson() => {
@@ -118,6 +135,10 @@ class AuthUser {
     if (semester != null) 'semester': semester,
     if (profilePic != null) 'profile_pic': profilePic,
     'is_seller': isSeller,
+    if (sellerId != null)
+      'seller': {
+        'id': sellerId,
+      },
   };
 }
 
@@ -128,7 +149,7 @@ class MessageResponse {
   const MessageResponse({required this.message});
 
   factory MessageResponse.fromJson(Map<String, dynamic> json) =>
-      MessageResponse(message: json['message'] as String ?? 'OK');
+      MessageResponse(message: json['message'] as String? ?? 'OK');
 
   Map<String, dynamic> toJson() => {'message': message};
 }
