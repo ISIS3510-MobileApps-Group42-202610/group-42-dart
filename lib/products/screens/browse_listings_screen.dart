@@ -7,7 +7,8 @@ import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
 import '../services/smart_recommendation_service.dart';
 import '../widgets/public_listing_card.dart';
-
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
 
@@ -163,13 +164,24 @@ class _BrowseListingsScreenState
                     ProductBloc,
                     ProductState>(
                   builder: (context, state) {
-                    final activeListings =
-                    state.publicProducts
-                        .where(
-                          (p) => p.active,
-                    )
-                        .toList();
+                    final authState = context.read<AuthBloc>().state;
+                    final currentUserName = authState is AuthAuthenticated
+                        ? '${authState.user.name} ${authState.user.lastName}'.trim()
+                        : null;
 
+                    final activeListings = state.publicProducts
+                        .where((p) {
+                      if (!p.active) return false;
+
+                      if (currentUserName != null &&
+                          p.sellerName != null &&
+                          p.sellerName!.trim().toLowerCase() == currentUserName.toLowerCase()) {
+                        return false;
+                      }
+
+                      return true;
+                    })
+                        .toList();
                     final rankedActive =
                     _smartService.rankListings(
                       listings: activeListings,

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:isis3510_group42_flutter_app/products/screens/chats_screen.dart';
 
 import '../../auth/auth.dart';
@@ -39,7 +42,6 @@ class HomeScreen extends StatelessWidget {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           print('[HOME_DIO] ${options.method} ${options.path}');
-          print('[HOME_DIO] using token from AuthAuthenticated');
           options.headers['Authorization'] = 'Bearer ${authState.accessToken}';
           return handler.next(options);
         },
@@ -75,28 +77,14 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     if (authState is AuthLoading || authState is AuthInitial) {
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (authState is! AuthAuthenticated) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/login',
-              (_) => false,
-        );
-      });
-
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -105,14 +93,13 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     final pages = <Widget>[
       const BrowseListingsScreen(),
       const ChatsScreen(),
-      const SellerProductsScreen(),
+      if (user.isSeller) const SellerProductsScreen(),
       _ProfileTab(user: user),
     ];
 
     return BlocListener<ProductBloc, ProductState>(
       listener: (context, state) {
         if (state is ProductUnauthorized && !_handledUnauthorized) {
-          print('[HOME_SCREEN] ProductUnauthorized received. Forcing logout');
           _handledUnauthorized = true;
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           context.read<AuthBloc>().add(const AuthLogoutRequest());
@@ -125,39 +112,38 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
           onDestinationSelected: (index) {
             navStartTime = DateTime.now();
             setState(() => _selectedIndex = index);
-            // Trackear navegación una vez que se renderiza la nueva pantalla
-            // Widgets binding sirve para ejecutar algo despuess de que el widget se haya renderizado,
-            // es decir justo lo que necesitamos para el bq1.
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (navStartTime != null) {
                 final durationMs = DateTime.now()
                     .difference(navStartTime!)
                     .inMilliseconds
                     .toDouble();
-                // pasar el evento al bloc analitico
+
                 context.read<AnalyticsBloc>().add(
                   TrackScreenNavigation(durationMs: durationMs),
                 );
               }
             });
           },
-          destinations: const [
-            NavigationDestination(
+          destinations: [
+            const NavigationDestination(
               icon: Icon(Icons.search_outlined),
               selectedIcon: Icon(Icons.search),
               label: 'Search',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.chat_outlined),
               selectedIcon: Icon(Icons.chat),
               label: 'Chats',
             ),
-            NavigationDestination(
-              icon: Icon(Icons.sell_outlined),
-              selectedIcon: Icon(Icons.sell),
-              label: 'My listings',
-            ),
-            NavigationDestination(
+            if (user.isSeller)
+              const NavigationDestination(
+                icon: Icon(Icons.sell_outlined),
+                selectedIcon: Icon(Icons.sell),
+                label: 'My listings',
+              ),
+            const NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
               label: 'Profile',
@@ -169,15 +155,60 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
   }
 }
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatefulWidget {
   final AuthUser? user;
 
   const _ProfileTab({required this.user});
 
   @override
+  State<_ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<_ProfileTab> {
+  bool _isPickingImage = false;
+
+  Future<void> _changeProfilePicture(BuildContext context) async {
+    try {
+      setState(() => _isPickingImage = true);
+
+      final picker = ImagePicker();
+
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (!mounted) return;
+
+      if (pickedFile == null) {
+        setState(() => _isPickingImage = false);
+        return;
+      }
+
+      context.read<AuthBloc>().add(
+        AuthUpdateProfilePictureRequest(
+          profileImageFile: File(pickedFile.path),
+        ),
+      );
+
+      setState(() => _isPickingImage = false);
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _isPickingImage = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not select the image. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final userName = user?.name ?? 'User';
-    final profilePic = user?.profilePic;
+    final userName = widget.user?.name ?? 'User';
+    final profilePic = widget.user?.profilePic;
 
     return Scaffold(
       appBar: AppBar(title: Text('Welcome, $userName')),
@@ -200,6 +231,24 @@ class _ProfileTab extends StatelessWidget {
                 )
                     : null,
               ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                icon: _isPickingImage
+                    ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Icon(Icons.camera_alt_outlined),
+                label: Text(
+                  _isPickingImage
+                      ? 'Selecting image...'
+                      : 'Change profile picture',
+                ),
+                onPressed: _isPickingImage
+                    ? null
+                    : () => _changeProfilePicture(context),
+              ),
               const SizedBox(height: 12),
               Text(
                 userName,
@@ -209,10 +258,10 @@ class _ProfileTab extends StatelessWidget {
                   color: AppColors.labelDark,
                 ),
               ),
-              if (user?.email != null) ...[
+              if (widget.user?.email != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  user!.email,
+                  widget.user!.email,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -220,7 +269,6 @@ class _ProfileTab extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 28),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
