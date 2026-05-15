@@ -54,8 +54,15 @@ class _ChatsScreenState extends State<ChatsScreen> {
     try {
       final dio = getDio();
 
+      final authState = context.read<AuthBloc>().state;
+      final isSeller = authState is AuthAuthenticated && authState.user.isSeller;
+
       final buyerResponse = await dio.get('/messages/as-buyer');
-      final sellerResponse = await dio.get('/messages/as-seller');
+      Response? sellerResponse;
+
+      if (isSeller) {
+        sellerResponse = await dio.get('/messages/as-seller');
+      }
 
       final loaded = <Map<String, dynamic>>[];
 
@@ -96,7 +103,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
         }
       }
 
-      final sellerData = sellerResponse.data;
+      final sellerData = sellerResponse?.data;
       if (sellerData is List) {
         for (final item in sellerData) {
           final message = Map<String, dynamic>.from(item as Map);
