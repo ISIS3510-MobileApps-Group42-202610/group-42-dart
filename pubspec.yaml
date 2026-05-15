@@ -46,6 +46,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1 # corecciooooon cache LRU para listings
   cached_network_image: ^3.4.1 # cache de imagenes para browse/detail offline
   connectivity_plus: ^5.0.2 # para detectar cambios en la conectividad de red
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:
