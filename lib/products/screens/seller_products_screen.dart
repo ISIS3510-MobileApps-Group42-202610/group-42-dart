@@ -340,26 +340,6 @@ class _SellerProductsScreenState
                                       TextAlign.center,
                                     ),
 
-                                    const SizedBox(
-                                      height:
-                                      20,
-                                    ),
-
-                                    ElevatedButton.icon(
-                                      style:
-                                      primaryButtonStyle(),
-                                      onPressed:
-                                      _openCreateScreen,
-                                      icon:
-                                      const Icon(
-                                        Icons
-                                            .add,
-                                      ),
-                                      label:
-                                      const Text(
-                                        'Create listing',
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
